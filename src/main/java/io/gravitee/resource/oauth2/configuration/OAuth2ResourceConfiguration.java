@@ -18,7 +18,8 @@ package io.gravitee.resource.oauth2.configuration;
 import io.gravitee.resource.api.ResourceConfiguration;
 
 /**
- * @author David BRASSELY (david at gravitee.io)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
+ * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
 public class OAuth2ResourceConfiguration implements ResourceConfiguration {

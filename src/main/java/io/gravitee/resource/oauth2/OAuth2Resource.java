@@ -15,15 +15,24 @@
  */
 package io.gravitee.resource.oauth2;
 
+import io.gravitee.common.http.HttpStatusCode;
+import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.resource.api.AbstractConfigurableResource;
 import io.gravitee.resource.oauth2.configuration.OAuth2ResourceConfiguration;
 import org.asynchttpclient.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 /**
- * @author David BRASSELY (david at gravitee.io)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
+ * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
 public class OAuth2Resource extends AbstractConfigurableResource<OAuth2ResourceConfiguration> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OAuth2Resource.class);
 
     private AsyncHttpClient client;
 
@@ -46,14 +55,45 @@ public class OAuth2Resource extends AbstractConfigurableResource<OAuth2ResourceC
         }
     }
 
-    public void validateToken(OAuth2Request request,
-                              AsyncHandler responseHandler) {
+    public void validate(String accessToken, Handler<OAuth2Response> responseHandler) {
+        Map<String, Collection<String>> headers = new HashMap<>();
+        Map<String, List<String>> queryParams = new HashMap<>();
+
+        headers.put(configuration().getAuthorizationHeaderName(),
+                Collections.singletonList(configuration().getAuthorizationScheme().trim() + " " + configuration().getAuthorizationValue()));
+
+        if (configuration().isTokenIsSuppliedByQueryParam()) {
+            queryParams.put(configuration().getTokenQueryParamName(), Collections.singletonList(accessToken));
+        } else if (configuration().isTokenIsSuppliedByHttpHeader()) {
+            headers.put(configuration().getTokenHeaderName(), Collections.singletonList(accessToken));
+        }
+
         RequestBuilder builder = new RequestBuilder();
         builder.setUrl(configuration().getServerURL());
         builder.setMethod(configuration().getHttpMethod());
-        builder.setHeaders(request.getHeaders());
-        builder.setQueryParams(request.getQueryParams());
+        builder.setHeaders(headers);
+        builder.setQueryParams(queryParams);
 
-        client.executeRequest(builder.build(), responseHandler);
+        client.executeRequest(builder.build(), new AsyncCompletionHandler<Void>() {
+            @Override
+            public Void onCompleted(org.asynchttpclient.Response clientResponse) throws Exception {
+                if (clientResponse.getStatusCode() == HttpStatusCode.OK_200) {
+                    handleResponse(new OAuth2Response(true, clientResponse.getResponseBody()));
+                } else {
+                    handleResponse(new OAuth2Response(false, clientResponse.getResponseBody()));
+                }
+                return null;
+            }
+
+            @Override
+            public void onThrowable(Throwable t) {
+                LOGGER.warn("Unexpected error while invoking remote OAuth2 Authorization server at {}", configuration().getServerURL(), t);
+                handleResponse(new OAuth2Response(t));
+            }
+
+            private void handleResponse(OAuth2Response oAuth2Response) {
+                responseHandler.handle(oAuth2Response);
+            }
+        });
     }
 }

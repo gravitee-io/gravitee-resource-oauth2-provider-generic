@@ -35,6 +35,7 @@
 
     <properties>
         <gravitee-resource-api.version>1.0.0</gravitee-resource-api.version>
+        <gravitee-gateway-api.version>1.0.0</gravitee-gateway-api.version>
         <async-http-client.version>2.0.15</async-http-client.version>
 
         <maven-assembly-plugin.version>2.5.5</maven-assembly-plugin.version>
@@ -46,6 +47,13 @@
             <groupId>io.gravitee.resource</groupId>
             <artifactId>gravitee-resource-api</artifactId>
             <version>${gravitee-resource-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.gateway</groupId>
+            <artifactId>gravitee-gateway-api</artifactId>
+            <version>${gravitee-gateway-api.version}</version>
             <scope>provided</scope>
         </dependency>
 
