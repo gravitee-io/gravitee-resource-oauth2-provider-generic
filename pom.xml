@@ -36,7 +36,8 @@
     <properties>
         <gravitee-resource-api.version>1.0.0</gravitee-resource-api.version>
         <gravitee-gateway-api.version>1.2.0</gravitee-gateway-api.version>
-        <async-http-client.version>2.0.15</async-http-client.version>
+        <gravitee-resource-oauth2-provider-api.version>1.0.0-SNAPSHOT</gravitee-resource-oauth2-provider-api.version>
+        <vertx.version>3.4.1</vertx.version>
 
         <maven-assembly-plugin.version>2.5.5</maven-assembly-plugin.version>
     </properties>
@@ -57,11 +58,18 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- AsyncHttpClient -->
         <dependency>
-            <groupId>org.asynchttpclient</groupId>
-            <artifactId>async-http-client</artifactId>
-            <version>${async-http-client.version}</version>
+            <groupId>io.gravitee.resource</groupId>
+            <artifactId>gravitee-resource-oauth2-provider-api</artifactId>
+            <version>${gravitee-resource-oauth2-provider-api.version}</version>
+        </dependency>
+
+        <!-- HTTP client -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

@@ -1,15 +1,15 @@
 {
   "type" : "object",
-  "id" : "urn:jsonschema:io:gravitee:resource:oauth2:configuration:OAuth2ResourceConfiguration",
+  "id" : "urn:jsonschema:io:gravitee:resource:oauth2:generic:configuration:OAuth2ResourceConfiguration",
   "properties" : {
-    "serverURL" : {
-      "title": "Server URL",
-      "description": "OAuth2 Server URL.",
+    "introspectionEndpoint" : {
+      "title": "Token introspection endpoint",
+      "description": "The URL which is used by the resource to introspect an incoming access token.",
       "type" : "string"
     },
-    "httpMethod" : {
-      "title": "HTTP Method",
-      "description": "HTTP method used to validate the OAuth token.",
+    "introspectionEndpointMethod" : {
+      "title": "Token introspection method",
+      "description": "HTTP method used to introspect the access token.",
       "type" : "string",
       "enum": [
         "GET",
@@ -17,53 +17,60 @@
       ],
       "default": "GET"
     },
-    "secure" : {
-      "title": "Secure",
-      "description": "HTTP / HTTPS",
-      "type" : "boolean",
-      "default": false
-    },
-    "authorizationHeaderName" : {
-      "type" : "string",
-      "title": "Authorization header",
-      "default": "Authorization"
-    },
-    "authorizationScheme" : {
-      "type" : "string",
-      "title": "Authorization scheme",
-      "default": "Basic"
-    },
-    "authorizationValue" : {
-      "title": "Authorization value",
+    "clientId" : {
+      "title": "Client Id",
+      "description": "The client identifier.",
       "type" : "string"
     },
+    "clientSecret" : {
+      "title": "Client Secret",
+      "description": "The client secret.",
+      "type" : "string"
+    },
+    "useClientAuthorizationHeader": {
+      "title": "Use HTTP header for client authorization",
+      "description": "To prevent token scanning attacks, the endpoint MUST also require some form of authorization to access this endpoint. In this case we are using an HTTP header for client authentication.",
+      "type" : "boolean",
+      "default": true
+    },
+    "clientAuthorizationHeaderName" : {
+      "type" : "string",
+      "title": "Authorization header.",
+      "default": "Authorization"
+    },
+    "clientAuthorizationHeaderScheme" : {
+      "type" : "string",
+      "title": "Authorization scheme.",
+      "default": "Basic"
+    },
     "tokenIsSuppliedByQueryParam" : {
-      "title": "Token from HTTP query parameter",
-      "description": "Is the OAuth token supplied using a query parameter ?",
+      "title": "Use a query parameter to supply access token",
+      "description": "Access token is passed to the introspection endpoint using a query parameter.",
       "type" : "boolean",
       "default": true
     },
     "tokenQueryParamName" : {
-      "title": "Query param name",
-      "description": "Query parameter used to supply OAuth token",
+      "title": "Token query param name",
+      "description": "Query parameter used to supply access token.",
       "type" : "string",
       "default": "token"
     },
     "tokenIsSuppliedByHttpHeader" : {
-      "title": "Token from HTTP header",
-      "description": "Is the OAuth token supplied using an HTTP header ?",
+      "title": "Use an HTTP header to supply access token",
+      "description": "Access token is passed to the introspection endpoint using an HTTP header.",
       "type" : "boolean",
       "default": false
     },
     "tokenHeaderName" : {
-      "description": "HTTP header used to supply OAuth token",
       "title": "HTTP header name",
+      "description": "HTTP header used to supply access token.",
       "type" : "string"
     }
   },
   "required": [
-    "serverURL",
-    "httpMethod",
-    "isSecure"
+    "introspectionEndpoint",
+    "introspectionEndpointMethod",
+    "clientId",
+    "clientSecret"
   ]
 }
