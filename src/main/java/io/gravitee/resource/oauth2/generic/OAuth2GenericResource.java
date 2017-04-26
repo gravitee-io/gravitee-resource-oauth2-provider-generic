@@ -54,8 +54,24 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         super.doStart();
 
         logger.info("Starting an OAuth2 resource using authorization server at {}", configuration().getIntrospectionEndpoint());
-        HttpClientOptions httpClientOptions = new HttpClientOptions();
-        httpClientOptions.setVerifyHost(false).setTrustAll(true);
+
+        URI introspectionUri = URI.create(configuration().getIntrospectionEndpoint());
+
+        int authorizationServerPort = introspectionUri.getPort() != -1 ? introspectionUri.getPort() :
+                (HTTPS_SCHEME.equals(introspectionUri.getScheme()) ? 443 : 80);
+        String authorizationServerHost = introspectionUri.getHost();
+
+        HttpClientOptions httpClientOptions = new HttpClientOptions()
+                .setDefaultPort(authorizationServerPort)
+                .setDefaultHost(authorizationServerHost);
+
+        // Use SSL connection if authorization schema is set to HTTPS
+        if (HTTPS_SCHEME.equalsIgnoreCase(introspectionUri.getScheme())) {
+            httpClientOptions
+                    .setSsl(true)
+                    .setVerifyHost(false)
+                    .setTrustAll(true);
+        }
 
         httpClient = Vertx.vertx().createHttpClient(httpClientOptions);
     }
@@ -72,11 +88,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     @Override
     public void introspect(String accessToken, Handler<OAuth2Response> responseHandler) {
         OAuth2ResourceConfiguration configuration = configuration();
-        URI introspectionUri = URI.create(configuration.getIntrospectionEndpoint());
-
-        final int port = introspectionUri.getPort() != -1 ? introspectionUri.getPort() :
-                (HTTPS_SCHEME.equals(introspectionUri.getScheme()) ? 443 : 80);
-
         StringBuilder introspectionUriBuilder = new StringBuilder(configuration.getIntrospectionEndpoint());
 
         if (configuration.isTokenIsSuppliedByQueryParam()) {
@@ -91,8 +102,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         HttpClientRequest request = httpClient.request(
                 HttpMethod.valueOf(configuration.getIntrospectionEndpointMethod().toUpperCase()),
-                port,
-                introspectionUri.getHost(),
                 introspectionEndpointURI);
 
         if (configuration().isUseClientAuthorizationHeader()) {
