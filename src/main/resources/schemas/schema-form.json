@@ -2,10 +2,17 @@
   "type" : "object",
   "id" : "urn:jsonschema:io:gravitee:resource:oauth2:generic:configuration:OAuth2ResourceConfiguration",
   "properties" : {
+    "authorizationServerUrl": {
+      "title": "Authorization server URL",
+      "description": "URL of the authorization server",
+      "type" : "string",
+      "default": "https://authorization_server"
+    },
     "introspectionEndpoint" : {
       "title": "Token introspection endpoint",
-      "description": "The URL which is used by the resource to introspect an incoming access token.",
-      "type" : "string"
+      "description": "Path which is used to introspect an incoming access token (must start with '/').",
+      "type" : "string",
+      "default": "/oauth/check_token"
     },
     "introspectionEndpointMethod" : {
       "title": "Token introspection method",
@@ -17,14 +24,30 @@
       ],
       "default": "GET"
     },
+    "userInfoEndpoint" : {
+      "title": "Userinfo endpoint",
+      "description": "Path which is used to get userinfo using incoming access token (must start with '/').",
+      "type" : "string",
+      "default": "/userinfo"
+    },
+    "userInfoEndpointMethod" : {
+      "title": "Userinfo  method",
+      "description": "HTTP method used to get userinfo.",
+      "type" : "string",
+      "enum": [
+        "GET",
+        "POST"
+      ],
+      "default": "GET"
+    },
     "clientId" : {
       "title": "Client Id",
-      "description": "The client identifier.",
+      "description": "The client identifier used for token introspection.",
       "type" : "string"
     },
     "clientSecret" : {
       "title": "Client Secret",
-      "description": "The client secret.",
+      "description": "The client secret used for token introspection.",
       "type" : "string"
     },
     "useClientAuthorizationHeader": {
@@ -80,6 +103,7 @@
     }
   },
   "required": [
+    "authorizationServerUrl",
     "introspectionEndpoint",
     "introspectionEndpointMethod",
     "clientId",

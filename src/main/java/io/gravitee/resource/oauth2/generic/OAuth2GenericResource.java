@@ -23,6 +23,7 @@ import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
+import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -41,6 +42,7 @@ import java.net.URI;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -51,8 +53,12 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     private final Logger logger = LoggerFactory.getLogger(OAuth2GenericResource.class);
 
+    // Pattern reuse for duplicate slash removal
+    private static final Pattern DUPLICATE_SLASH_REMOVER = Pattern.compile("(?<!(http:|https:))[//]+");
+
     private static final String HTTPS_SCHEME = "https";
 
+    private static final String AUTHORIZATION_HEADER_BEARER_SCHEME = "Bearer ";
     private static final char AUTHORIZATION_HEADER_SCHEME_SEPARATOR = ' ';
     private static final char AUTHORIZATION_HEADER_VALUE_BASE64_SEPARATOR = ':';
 
@@ -64,26 +70,50 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     private Vertx vertx;
 
+    private String introspectionEndpointURI;
+
+    private String userInfoEndpointURI;
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
     protected void doStart() throws Exception {
         super.doStart();
 
-        logger.info("Starting an OAuth2 resource using authorization server at {}", configuration().getIntrospectionEndpoint());
+        logger.info("Starting an OAuth2 resource using authorization server at {}", configuration().getAuthorizationServerUrl());
 
-        URI introspectionUri = URI.create(configuration().getIntrospectionEndpoint());
+        String sAuthorizationServerUrl = configuration().getAuthorizationServerUrl();
 
-        int authorizationServerPort = introspectionUri.getPort() != -1 ? introspectionUri.getPort() :
-                (HTTPS_SCHEME.equals(introspectionUri.getScheme()) ? 443 : 80);
-        String authorizationServerHost = introspectionUri.getHost();
+        if (sAuthorizationServerUrl != null && !sAuthorizationServerUrl.isEmpty()) {
+            introspectionEndpointURI = configuration().getAuthorizationServerUrl() + '/' + configuration().getIntrospectionEndpoint();
+            userInfoEndpointURI = configuration().getAuthorizationServerUrl() + '/' + configuration().getUserInfoEndpoint();
+        } else {
+            introspectionEndpointURI = configuration().getIntrospectionEndpoint();
+            userInfoEndpointURI = configuration().getUserInfoEndpoint();
+        }
+
+        URI authorizationServerUrl = null;
+
+        if (userInfoEndpointURI != null) {
+            userInfoEndpointURI = DUPLICATE_SLASH_REMOVER.matcher(userInfoEndpointURI).replaceAll("/");
+            authorizationServerUrl = URI.create(userInfoEndpointURI);
+        }
+
+        if (introspectionEndpointURI != null) {
+            introspectionEndpointURI = DUPLICATE_SLASH_REMOVER.matcher(introspectionEndpointURI).replaceAll("/");
+            authorizationServerUrl = URI.create(introspectionEndpointURI);
+        }
+
+        int authorizationServerPort = authorizationServerUrl.getPort() != -1 ? authorizationServerUrl.getPort() :
+                (HTTPS_SCHEME.equals(authorizationServerUrl.getScheme()) ? 443 : 80);
+        String authorizationServerHost = authorizationServerUrl.getHost();
 
         httpClientOptions = new HttpClientOptions()
                 .setDefaultPort(authorizationServerPort)
                 .setDefaultHost(authorizationServerHost);
 
         // Use SSL connection if authorization schema is set to HTTPS
-        if (HTTPS_SCHEME.equalsIgnoreCase(introspectionUri.getScheme())) {
+        if (HTTPS_SCHEME.equalsIgnoreCase(authorizationServerUrl.getScheme())) {
             httpClientOptions
                     .setSsl(true)
                     .setVerifyHost(false)
@@ -112,7 +142,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                 Vertx.currentContext(), context -> vertx.createHttpClient(httpClientOptions));
 
         OAuth2ResourceConfiguration configuration = configuration();
-        StringBuilder introspectionUriBuilder = new StringBuilder(configuration.getIntrospectionEndpoint());
+        StringBuilder introspectionUriBuilder = new StringBuilder(introspectionEndpointURI);
 
         if (configuration.isTokenIsSuppliedByQueryParam()) {
             introspectionUriBuilder
@@ -187,6 +217,40 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         } else {
             request.end();
         }
+    }
+
+    @Override
+    public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {
+        HttpClient httpClient = httpClients.computeIfAbsent(
+                Vertx.currentContext(), context -> vertx.createHttpClient(httpClientOptions));
+
+        OAuth2ResourceConfiguration configuration = configuration();
+
+        HttpMethod httpMethod = HttpMethod.valueOf(configuration.getUserInfoEndpointMethod().toUpperCase());
+
+        logger.debug("Get userinfo by requesting {} [{}]", userInfoEndpointURI,
+                configuration.getUserInfoEndpointMethod());
+
+        HttpClientRequest request = httpClient.requestAbs(httpMethod, userInfoEndpointURI);
+
+        request.headers().add(HttpHeaders.AUTHORIZATION, AUTHORIZATION_HEADER_BEARER_SCHEME + accessToken);
+
+        request.handler(response -> response.bodyHandler(buffer -> {
+            logger.debug("Userinfo endpoint returns a response with a {} status code", response.statusCode());
+
+            if (response.statusCode() == HttpStatusCode.OK_200) {
+                responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
+            } else {
+                responseHandler.handle(new UserInfoResponse(false, buffer.toString()));
+            }
+        }));
+
+        request.exceptionHandler(event -> {
+            logger.error("An error occurs while getting userinfo from access_token", event);
+            responseHandler.handle(new UserInfoResponse(false, event.getMessage()));
+        });
+
+        request.end();
     }
 
     @Override

@@ -90,6 +90,32 @@ public class OAuth2GenericResourceTest {
     }
 
     @Test
+    public void shouldCallWithAuthorizationServerURL() throws Exception {
+        String accessToken = "xxxx-xxxx-xxxx-xxxx";
+        stubFor(post(urlEqualTo("/oauth/introspect"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBody("{\"key\": \"value\"}")));
+
+        final CountDownLatch lock = new CountDownLatch(1);
+
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("/oauth/introspect");
+        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
+        Mockito.when(configuration.isTokenIsSuppliedByHttpHeader()).thenReturn(true);
+        Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaders.AUTHORIZATION);
+
+        resource.doStart();
+
+        resource.introspect(accessToken, oAuth2Response -> lock.countDown());
+
+        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+
+        verify(postRequestedFor(urlPathEqualTo("/oauth/introspect"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo(accessToken)));
+    }
+
+    @Test
     public void shouldCallWithQueryParam() throws Exception {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlPathEqualTo("/oauth/introspect"))
@@ -200,6 +226,74 @@ public class OAuth2GenericResourceTest {
 
         resource.introspect("xxxx-xxxx-xxxx-xxxx", oAuth2Response -> {
             Assert.assertFalse(oAuth2Response.isSuccess());
+            lock.countDown();
+        });
+
+        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void shouldGetUserInfo() throws Exception {
+        stubFor(get(urlEqualTo("/userinfo"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\", \"given_name\": \"Jane\"}")));
+
+        final CountDownLatch lock = new CountDownLatch(1);
+
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
+        Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.GET.name());
+
+        resource.doStart();
+
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            Assert.assertTrue(userInfoResponse.isSuccess());
+            lock.countDown();
+        });
+
+        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void shouldPostUserInfo() throws Exception {
+        stubFor(post(urlEqualTo("/userinfo"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\", \"given_name\": \"Jane\"}")));
+
+        final CountDownLatch lock = new CountDownLatch(1);
+
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
+        Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.POST.name());
+
+        resource.doStart();
+
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            Assert.assertTrue(userInfoResponse.isSuccess());
+            lock.countDown();
+        });
+
+        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void shouldNotGetUserInfo() throws Exception {
+        stubFor(get(urlEqualTo("/userinfo"))
+                .willReturn(aResponse()
+                        .withStatus(401)));
+
+        final CountDownLatch lock = new CountDownLatch(1);
+
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
+        Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.GET.name());
+
+        resource.doStart();
+
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            Assert.assertFalse(userInfoResponse.isSuccess());
             lock.countDown();
         });
 

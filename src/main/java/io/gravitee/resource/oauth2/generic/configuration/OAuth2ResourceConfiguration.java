@@ -24,9 +24,15 @@ import io.gravitee.resource.api.ResourceConfiguration;
  */
 public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
+    private String authorizationServerUrl;
+
     private String introspectionEndpoint;
 
     private String introspectionEndpointMethod;
+
+    private String userInfoEndpoint;
+
+    private String userInfoEndpointMethod;
 
     private String clientId;
 
@@ -49,6 +55,14 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
     private boolean tokenIsSuppliedByFormUrlEncoded;
 
     private String tokenFormUrlEncodedName;
+
+    public String getAuthorizationServerUrl() {
+        return authorizationServerUrl;
+    }
+
+    public void setAuthorizationServerUrl(String authorizationServerUrl) {
+        this.authorizationServerUrl = authorizationServerUrl;
+    }
 
     public String getIntrospectionEndpoint() {
         return introspectionEndpoint;
@@ -152,5 +166,21 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     public void setTokenFormUrlEncodedName(String tokenFormUrlEncodedName) {
         this.tokenFormUrlEncodedName = tokenFormUrlEncodedName;
+    }
+
+    public String getUserInfoEndpoint() {
+        return userInfoEndpoint;
+    }
+
+    public void setUserInfoEndpoint(String userInfoEndpoint) {
+        this.userInfoEndpoint = userInfoEndpoint;
+    }
+
+    public String getUserInfoEndpointMethod() {
+        return userInfoEndpointMethod;
+    }
+
+    public void setUserInfoEndpointMethod(String userInfoEndpointMethod) {
+        this.userInfoEndpointMethod = userInfoEndpointMethod;
     }
 }
