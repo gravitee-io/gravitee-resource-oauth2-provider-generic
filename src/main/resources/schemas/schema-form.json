@@ -24,6 +24,12 @@
       ],
       "default": "GET"
     },
+    "scopeSeparator" : {
+      "title": "Scope separator",
+      "description": "Separator used to separate scopes for token introspection (default is a whitespace)",
+      "type": "string",
+      "default": " "
+    },
     "userInfoEndpoint" : {
       "title": "Userinfo endpoint",
       "description": "Path which is used to get userinfo using incoming access token (must start with '/').",

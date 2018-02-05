@@ -56,6 +56,8 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     private String tokenFormUrlEncodedName;
 
+    private String scopeSeparator;
+
     public String getAuthorizationServerUrl() {
         return authorizationServerUrl;
     }
@@ -182,5 +184,13 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     public void setUserInfoEndpointMethod(String userInfoEndpointMethod) {
         this.userInfoEndpointMethod = userInfoEndpointMethod;
+    }
+
+    public String getScopeSeparator() {
+        return scopeSeparator;
+    }
+
+    public void setScopeSeparator(String scopeSeparator) {
+        this.scopeSeparator = scopeSeparator;
     }
 }
