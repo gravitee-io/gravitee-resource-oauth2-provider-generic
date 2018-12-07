@@ -110,7 +110,9 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         httpClientOptions = new HttpClientOptions()
                 .setDefaultPort(authorizationServerPort)
-                .setDefaultHost(authorizationServerHost);
+                .setDefaultHost(authorizationServerHost)
+                .setIdleTimeout(60)
+                .setConnectTimeout(10000);
 
         // Use SSL connection if authorization schema is set to HTTPS
         if (HTTPS_SCHEME.equalsIgnoreCase(authorizationServerUrl.getScheme())) {
@@ -157,6 +159,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         HttpMethod httpMethod = HttpMethod.valueOf(configuration.getIntrospectionEndpointMethod().toUpperCase());
 
         HttpClientRequest request = httpClient.requestAbs(httpMethod, introspectionEndpointURI);
+        request.setTimeout(30000L);
 
         if (configuration().isUseClientAuthorizationHeader()) {
             String authorizationHeader = configuration.getClientAuthorizationHeaderName();
