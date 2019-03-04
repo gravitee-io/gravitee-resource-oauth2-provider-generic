@@ -29,7 +29,8 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.context.ApplicationContext;
 
 import java.util.concurrent.CountDownLatch;
@@ -37,7 +38,6 @@ import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -60,7 +60,6 @@ public class OAuth2GenericResourceTest {
 
     @Before
     public void init() {
-        initMocks(this);
         Mockito.when(applicationContext.getBean(Vertx.class)).thenReturn(Vertx.vertx());
     }
 
