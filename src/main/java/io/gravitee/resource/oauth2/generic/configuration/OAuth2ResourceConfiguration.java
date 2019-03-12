@@ -58,6 +58,8 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     private String scopeSeparator;
 
+    private String userClaim;
+
     public String getAuthorizationServerUrl() {
         return authorizationServerUrl;
     }
@@ -192,5 +194,13 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     public void setScopeSeparator(String scopeSeparator) {
         this.scopeSeparator = scopeSeparator;
+    }
+
+    public String getUserClaim() {
+        return userClaim;
+    }
+
+    public void setUserClaim(String userClaim) {
+        this.userClaim = userClaim;
     }
 }

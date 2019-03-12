@@ -106,6 +106,12 @@
       "description": "Name of the form param in case of application/x-www-form-urlencoded.",
       "type" : "string",
       "default": "token"
+    },
+    "userClaim" : {
+      "title": "User claim",
+      "description": "User claim field used to store end user on log analytics",
+      "type": "string",
+      "default": "sub"
     }
   },
   "required": [
