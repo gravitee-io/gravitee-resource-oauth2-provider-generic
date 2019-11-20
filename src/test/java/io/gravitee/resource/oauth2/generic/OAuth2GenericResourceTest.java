@@ -19,6 +19,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpMethod;
 import io.gravitee.common.http.MediaType;
+import io.gravitee.node.api.Node;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.vertx.core.Vertx;
 import org.junit.Assert;
@@ -55,11 +56,15 @@ public class OAuth2GenericResourceTest {
     @Mock
     private OAuth2ResourceConfiguration configuration;
 
+    @Mock
+    private Node node;
+    
     @InjectMocks
     private OAuth2GenericResource resource;
 
     @Before
     public void init() {
+        Mockito.when(applicationContext.getBean(Node.class)).thenReturn(node);
         Mockito.when(applicationContext.getBean(Vertx.class)).thenReturn(Vertx.vertx());
     }
 

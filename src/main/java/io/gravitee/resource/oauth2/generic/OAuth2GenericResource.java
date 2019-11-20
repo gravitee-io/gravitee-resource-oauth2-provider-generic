@@ -20,7 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
+import io.gravitee.common.utils.UUID;
 import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.node.api.Node;
+import io.gravitee.node.api.utils.NodeUtils;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
@@ -69,6 +72,8 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     private HttpClientOptions httpClientOptions;
 
     private Vertx vertx;
+
+    private String userAgent;
 
     private String introspectionEndpointURI;
 
@@ -122,6 +127,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                     .setTrustAll(true);
         }
 
+        userAgent = NodeUtils.userAgent(applicationContext.getBean(Node.class));
         vertx = applicationContext.getBean(Vertx.class);
     }
 
@@ -160,6 +166,8 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         HttpClientRequest request = httpClient.requestAbs(httpMethod, introspectionEndpointURI);
         request.setTimeout(30000L);
+        request.headers().add(HttpHeaders.USER_AGENT, userAgent);
+        request.headers().add("X-Gravitee-Request-Id", UUID.toString(UUID.random()));
 
         if (configuration().isUseClientAuthorizationHeader()) {
             String authorizationHeader = configuration.getClientAuthorizationHeaderName();
@@ -236,6 +244,8 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         HttpClientRequest request = httpClient.requestAbs(httpMethod, userInfoEndpointURI);
 
+        request.headers().add(HttpHeaders.USER_AGENT, userAgent);
+        request.headers().add("X-Gravitee-Request-Id", UUID.toString(UUID.random()));
         request.headers().add(HttpHeaders.AUTHORIZATION, AUTHORIZATION_HEADER_BEARER_SCHEME + accessToken);
 
         request.handler(response -> response.bodyHandler(buffer -> {
