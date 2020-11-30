@@ -54,7 +54,10 @@
     "clientSecret" : {
       "title": "Client Secret",
       "description": "The client secret used for token introspection.",
-      "type" : "string"
+      "type" : "string",
+      "x-schema-form": {
+        "type": "password"
+      }
     },
     "useClientAuthorizationHeader": {
       "title": "Use HTTP header for client authorization",
