@@ -34,18 +34,17 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-
 import java.io.IOException;
 import java.net.URI;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -109,11 +108,13 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             authorizationServerUrl = URI.create(introspectionEndpointURI);
         }
 
-        int authorizationServerPort = authorizationServerUrl.getPort() != -1 ? authorizationServerUrl.getPort() :
-                (HTTPS_SCHEME.equals(authorizationServerUrl.getScheme()) ? 443 : 80);
+        int authorizationServerPort = authorizationServerUrl.getPort() != -1
+            ? authorizationServerUrl.getPort()
+            : (HTTPS_SCHEME.equals(authorizationServerUrl.getScheme()) ? 443 : 80);
         String authorizationServerHost = authorizationServerUrl.getHost();
 
-        httpClientOptions = new HttpClientOptions()
+        httpClientOptions =
+            new HttpClientOptions()
                 .setDefaultPort(authorizationServerPort)
                 .setDefaultHost(authorizationServerHost)
                 .setIdleTimeout(60)
@@ -121,10 +122,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         // Use SSL connection if authorization schema is set to HTTPS
         if (HTTPS_SCHEME.equalsIgnoreCase(authorizationServerUrl.getScheme())) {
-            httpClientOptions
-                    .setSsl(true)
-                    .setVerifyHost(false)
-                    .setTrustAll(true);
+            httpClientOptions.setSsl(true).setVerifyHost(false).setTrustAll(true);
         }
 
         userAgent = NodeUtils.userAgent(applicationContext.getBean(Node.class));
@@ -135,32 +133,36 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     protected void doStop() throws Exception {
         super.doStop();
 
-        httpClients.values().forEach(httpClient -> {
-            try {
-                httpClient.close();
-            } catch (IllegalStateException ise) {
-                logger.warn(ise.getMessage());
-            }
-        });
+        httpClients
+            .values()
+            .forEach(
+                httpClient -> {
+                    try {
+                        httpClient.close();
+                    } catch (IllegalStateException ise) {
+                        logger.warn(ise.getMessage());
+                    }
+                }
+            );
     }
 
     @Override
     public void introspect(String accessToken, Handler<OAuth2Response> responseHandler) {
-        HttpClient httpClient = httpClients.computeIfAbsent(
-                Vertx.currentContext(), context -> vertx.createHttpClient(httpClientOptions));
+        HttpClient httpClient = httpClients.computeIfAbsent(Vertx.currentContext(), context -> vertx.createHttpClient(httpClientOptions));
 
         OAuth2ResourceConfiguration configuration = configuration();
         StringBuilder introspectionUriBuilder = new StringBuilder(introspectionEndpointURI);
 
         if (configuration.isTokenIsSuppliedByQueryParam()) {
-            introspectionUriBuilder
-                    .append('?').append(configuration.getTokenQueryParamName())
-                    .append('=').append(accessToken);
+            introspectionUriBuilder.append('?').append(configuration.getTokenQueryParamName()).append('=').append(accessToken);
         }
 
         String introspectionEndpointURI = introspectionUriBuilder.toString();
-        logger.debug("Introspect access token by requesting {} [{}]", introspectionEndpointURI,
-                configuration.getIntrospectionEndpointMethod());
+        logger.debug(
+            "Introspect access token by requesting {} [{}]",
+            introspectionEndpointURI,
+            configuration.getIntrospectionEndpointMethod()
+        );
 
         HttpMethod httpMethod = HttpMethod.valueOf(configuration.getIntrospectionEndpointMethod().toUpperCase());
 
@@ -171,12 +173,16 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         if (configuration().isUseClientAuthorizationHeader()) {
             String authorizationHeader = configuration.getClientAuthorizationHeaderName();
-            String authorizationValue = configuration.getClientAuthorizationHeaderScheme().trim() +
-                    AUTHORIZATION_HEADER_SCHEME_SEPARATOR +
-                    Base64.getEncoder().encodeToString(
-                            (configuration.getClientId() +
-                                    AUTHORIZATION_HEADER_VALUE_BASE64_SEPARATOR +
-                                    configuration.getClientSecret()).getBytes());
+            String authorizationValue =
+                configuration.getClientAuthorizationHeaderScheme().trim() +
+                AUTHORIZATION_HEADER_SCHEME_SEPARATOR +
+                Base64
+                    .getEncoder()
+                    .encodeToString(
+                        (
+                            configuration.getClientId() + AUTHORIZATION_HEADER_VALUE_BASE64_SEPARATOR + configuration.getClientSecret()
+                        ).getBytes()
+                    );
             request.headers().add(authorizationHeader, authorizationValue);
             logger.debug("Set client authorization using HTTP header {} with value {}", authorizationHeader, authorizationValue);
         }
@@ -188,39 +194,46 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             request.headers().add(configuration.getTokenHeaderName(), accessToken);
         }
 
-        request.handler(response -> response.bodyHandler(buffer -> {
-            logger.debug("Introspection endpoint returns a response with a {} status code", response.statusCode());
-            if (response.statusCode() == HttpStatusCode.OK_200) {
-                // According to RFC 7662 : Note that a properly formed and authorized query for an inactive or
-                // otherwise invalid token (or a token the protected resource is not
-                // allowed to know about) is not considered an error response by this
-                // specification.  In these cases, the authorization server MUST instead
-                // respond with an introspection response with the "active" field set to
-                // "false" as described in Section 2.2.
-                String content = buffer.toString();
+        request.handler(
+            response ->
+                response.bodyHandler(
+                    buffer -> {
+                        logger.debug("Introspection endpoint returns a response with a {} status code", response.statusCode());
+                        if (response.statusCode() == HttpStatusCode.OK_200) {
+                            // According to RFC 7662 : Note that a properly formed and authorized query for an inactive or
+                            // otherwise invalid token (or a token the protected resource is not
+                            // allowed to know about) is not considered an error response by this
+                            // specification.  In these cases, the authorization server MUST instead
+                            // respond with an introspection response with the "active" field set to
+                            // "false" as described in Section 2.2.
+                            String content = buffer.toString();
 
-                try {
-                    JsonNode introspectNode = MAPPER.readTree(content);
-                    JsonNode activeNode = introspectNode.get("active");
-                    if (activeNode != null) {
-                        boolean isActive = activeNode.asBoolean();
-                        responseHandler.handle(new OAuth2Response(isActive, content));
-                    } else {
-                        responseHandler.handle(new OAuth2Response(true, content));
+                            try {
+                                JsonNode introspectNode = MAPPER.readTree(content);
+                                JsonNode activeNode = introspectNode.get("active");
+                                if (activeNode != null) {
+                                    boolean isActive = activeNode.asBoolean();
+                                    responseHandler.handle(new OAuth2Response(isActive, content));
+                                } else {
+                                    responseHandler.handle(new OAuth2Response(true, content));
+                                }
+                            } catch (IOException e) {
+                                logger.error("Unable to validate introspection endpoint payload: {}", content);
+                                responseHandler.handle(new OAuth2Response(false, content));
+                            }
+                        } else {
+                            responseHandler.handle(new OAuth2Response(false, buffer.toString()));
+                        }
                     }
-                } catch (IOException e) {
-                    logger.error("Unable to validate introspection endpoint payload: {}", content);
-                    responseHandler.handle(new OAuth2Response(false, content));
-                }
-            } else {
-                responseHandler.handle(new OAuth2Response(false, buffer.toString()));
-            }
-        }));
+                )
+        );
 
-        request.exceptionHandler(event -> {
-            logger.error("An error occurs while checking OAuth2 token", event);
-            responseHandler.handle(new OAuth2Response(false, event.getMessage()));
-        });
+        request.exceptionHandler(
+            event -> {
+                logger.error("An error occurs while checking OAuth2 token", event);
+                responseHandler.handle(new OAuth2Response(false, event.getMessage()));
+            }
+        );
 
         if (httpMethod == HttpMethod.POST && configuration.isTokenIsSuppliedByFormUrlEncoded()) {
             request.headers().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED);
@@ -232,15 +245,13 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     @Override
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {
-        HttpClient httpClient = httpClients.computeIfAbsent(
-                Vertx.currentContext(), context -> vertx.createHttpClient(httpClientOptions));
+        HttpClient httpClient = httpClients.computeIfAbsent(Vertx.currentContext(), context -> vertx.createHttpClient(httpClientOptions));
 
         OAuth2ResourceConfiguration configuration = configuration();
 
         HttpMethod httpMethod = HttpMethod.valueOf(configuration.getUserInfoEndpointMethod().toUpperCase());
 
-        logger.debug("Get userinfo by requesting {} [{}]", userInfoEndpointURI,
-                configuration.getUserInfoEndpointMethod());
+        logger.debug("Get userinfo by requesting {} [{}]", userInfoEndpointURI, configuration.getUserInfoEndpointMethod());
 
         HttpClientRequest request = httpClient.requestAbs(httpMethod, userInfoEndpointURI);
 
@@ -248,20 +259,27 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         request.headers().add("X-Gravitee-Request-Id", UUID.toString(UUID.random()));
         request.headers().add(HttpHeaders.AUTHORIZATION, AUTHORIZATION_HEADER_BEARER_SCHEME + accessToken);
 
-        request.handler(response -> response.bodyHandler(buffer -> {
-            logger.debug("Userinfo endpoint returns a response with a {} status code", response.statusCode());
+        request.handler(
+            response ->
+                response.bodyHandler(
+                    buffer -> {
+                        logger.debug("Userinfo endpoint returns a response with a {} status code", response.statusCode());
 
-            if (response.statusCode() == HttpStatusCode.OK_200) {
-                responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
-            } else {
-                responseHandler.handle(new UserInfoResponse(false, buffer.toString()));
+                        if (response.statusCode() == HttpStatusCode.OK_200) {
+                            responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
+                        } else {
+                            responseHandler.handle(new UserInfoResponse(false, buffer.toString()));
+                        }
+                    }
+                )
+        );
+
+        request.exceptionHandler(
+            event -> {
+                logger.error("An error occurs while getting userinfo from access_token", event);
+                responseHandler.handle(new UserInfoResponse(false, event.getMessage()));
             }
-        }));
-
-        request.exceptionHandler(event -> {
-            logger.error("An error occurs while getting userinfo from access_token", event);
-            responseHandler.handle(new UserInfoResponse(false, event.getMessage()));
-        });
+        );
 
         request.end();
     }
