@@ -133,15 +133,13 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         httpClients
             .values()
-            .forEach(
-                httpClient -> {
-                    try {
-                        httpClient.close();
-                    } catch (IllegalStateException ise) {
-                        logger.warn(ise.getMessage());
-                    }
+            .forEach(httpClient -> {
+                try {
+                    httpClient.close();
+                } catch (IllegalStateException ise) {
+                    logger.warn(ise.getMessage());
                 }
-            );
+            });
     }
 
     @Override
@@ -219,44 +217,42 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                             responseHandler.handle(new OAuth2Response(false, asyncResponse.cause().getMessage()));
                                         } else {
                                             final HttpClientResponse response = asyncResponse.result();
-                                            response.bodyHandler(
-                                                buffer -> {
-                                                    logger.debug(
-                                                        "Userinfo endpoint returns a response with a {} status code",
-                                                        response.statusCode()
-                                                    );
+                                            response.bodyHandler(buffer -> {
+                                                logger.debug(
+                                                    "Userinfo endpoint returns a response with a {} status code",
+                                                    response.statusCode()
+                                                );
 
-                                                    logger.debug(
-                                                        "Introspection endpoint returns a response with a {} status code",
-                                                        response.statusCode()
-                                                    );
-                                                    if (response.statusCode() == HttpStatusCode.OK_200) {
-                                                        // According to RFC 7662 : Note that a properly formed and authorized query for an inactive or
-                                                        // otherwise invalid token (or a token the protected resource is not
-                                                        // allowed to know about) is not considered an error response by this
-                                                        // specification.  In these cases, the authorization server MUST instead
-                                                        // respond with an introspection response with the "active" field set to
-                                                        // "false" as described in Section 2.2.
-                                                        String content = buffer.toString();
+                                                logger.debug(
+                                                    "Introspection endpoint returns a response with a {} status code",
+                                                    response.statusCode()
+                                                );
+                                                if (response.statusCode() == HttpStatusCode.OK_200) {
+                                                    // According to RFC 7662 : Note that a properly formed and authorized query for an inactive or
+                                                    // otherwise invalid token (or a token the protected resource is not
+                                                    // allowed to know about) is not considered an error response by this
+                                                    // specification.  In these cases, the authorization server MUST instead
+                                                    // respond with an introspection response with the "active" field set to
+                                                    // "false" as described in Section 2.2.
+                                                    String content = buffer.toString();
 
-                                                        try {
-                                                            JsonNode introspectNode = MAPPER.readTree(content);
-                                                            JsonNode activeNode = introspectNode.get("active");
-                                                            if (activeNode != null) {
-                                                                boolean isActive = activeNode.asBoolean();
-                                                                responseHandler.handle(new OAuth2Response(isActive, content));
-                                                            } else {
-                                                                responseHandler.handle(new OAuth2Response(true, content));
-                                                            }
-                                                        } catch (IOException e) {
-                                                            logger.error("Unable to validate introspection endpoint payload: {}", content);
-                                                            responseHandler.handle(new OAuth2Response(false, content));
+                                                    try {
+                                                        JsonNode introspectNode = MAPPER.readTree(content);
+                                                        JsonNode activeNode = introspectNode.get("active");
+                                                        if (activeNode != null) {
+                                                            boolean isActive = activeNode.asBoolean();
+                                                            responseHandler.handle(new OAuth2Response(isActive, content));
+                                                        } else {
+                                                            responseHandler.handle(new OAuth2Response(true, content));
                                                         }
-                                                    } else {
-                                                        responseHandler.handle(new OAuth2Response(false, buffer.toString()));
+                                                    } catch (IOException e) {
+                                                        logger.error("Unable to validate introspection endpoint payload: {}", content);
+                                                        responseHandler.handle(new OAuth2Response(false, content));
                                                     }
+                                                } else {
+                                                    responseHandler.handle(new OAuth2Response(false, buffer.toString()));
                                                 }
-                                            );
+                                            });
                                         }
                                     }
                                 }
@@ -325,20 +321,18 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                             responseHandler.handle(new UserInfoResponse(false, asyncResponse.cause().getMessage()));
                                         } else {
                                             final HttpClientResponse response = asyncResponse.result();
-                                            response.bodyHandler(
-                                                buffer -> {
-                                                    logger.debug(
-                                                        "Userinfo endpoint returns a response with a {} status code",
-                                                        response.statusCode()
-                                                    );
+                                            response.bodyHandler(buffer -> {
+                                                logger.debug(
+                                                    "Userinfo endpoint returns a response with a {} status code",
+                                                    response.statusCode()
+                                                );
 
-                                                    if (response.statusCode() == HttpStatusCode.OK_200) {
-                                                        responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
-                                                    } else {
-                                                        responseHandler.handle(new UserInfoResponse(false, buffer.toString()));
-                                                    }
+                                                if (response.statusCode() == HttpStatusCode.OK_200) {
+                                                    responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
+                                                } else {
+                                                    responseHandler.handle(new UserInfoResponse(false, buffer.toString()));
                                                 }
-                                            );
+                                            });
                                         }
                                     }
                                 }
