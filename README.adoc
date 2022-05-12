@@ -29,6 +29,12 @@ You can configure the resource with the following options :
 ^.^|string
 ^.^|-
 
+.^|useSystemProxy
+^.^|X
+|TUse system proxy.
+^.^|boolean
+^.^|false
+
 .^|introspectionEndpointMethod
 ^.^|X
 |HTTP method used to introspect the access token.

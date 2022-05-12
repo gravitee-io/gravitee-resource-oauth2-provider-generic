@@ -28,6 +28,8 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     private String introspectionEndpoint;
 
+    private boolean useSystemProxy;
+
     private String introspectionEndpointMethod;
 
     private String userInfoEndpoint;
@@ -74,6 +76,14 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     public void setIntrospectionEndpoint(String introspectionEndpoint) {
         this.introspectionEndpoint = introspectionEndpoint;
+    }
+
+    public boolean isUseSystemProxy() {
+        return useSystemProxy;
+    }
+
+    public void setUseSystemProxy(boolean useSystemProxy) {
+        this.useSystemProxy = useSystemProxy;
     }
 
     public String getIntrospectionEndpointMethod() {

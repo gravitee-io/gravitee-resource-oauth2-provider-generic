@@ -14,6 +14,12 @@
       "type" : "string",
       "default": "/oauth/check_token"
     },
+    "useSystemProxy" : {
+      "title": "System proxy",
+      "description": "Use system proxy",
+      "type" : "boolean",
+      "default": false
+    },
     "introspectionEndpointMethod" : {
       "title": "Token introspection method",
       "description": "HTTP method used to introspect the access token.",

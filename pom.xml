@@ -87,6 +87,7 @@
             <version>${gravitee-node-api.version}</version>
             <scope>provided</scope>
         </dependency>
+
         <!-- HTTP client -->
         <dependency>
             <groupId>io.vertx</groupId>

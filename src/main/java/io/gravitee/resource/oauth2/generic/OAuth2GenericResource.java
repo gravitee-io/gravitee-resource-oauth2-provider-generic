@@ -32,11 +32,14 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
+import io.vertx.core.net.ProxyOptions;
+import io.vertx.core.net.ProxyType;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -44,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.env.Environment;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -122,6 +126,18 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         // Use SSL connection if authorization schema is set to HTTPS
         if (HTTPS_SCHEME.equalsIgnoreCase(authorizationServerUrl.getScheme())) {
             httpClientOptions.setSsl(true).setVerifyHost(false).setTrustAll(true);
+        }
+
+        if (configuration().isUseSystemProxy()) {
+            try {
+                httpClientOptions.setProxyOptions(getSystemProxyOptions());
+            } catch (IllegalStateException e) {
+                logger.warn(
+                    "OAuth2 resource requires a system proxy to be defined but some configurations are missing or not well defined: {}",
+                    e.getMessage()
+                );
+                logger.warn("Ignoring system proxy");
+            }
         }
 
         userAgent = NodeUtils.userAgent(applicationContext.getBean(Node.class));
@@ -356,5 +372,45 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
+    }
+
+    private ProxyOptions getSystemProxyOptions() {
+        Environment environment = applicationContext.getEnvironment();
+
+        StringBuilder errors = new StringBuilder();
+        ProxyOptions proxyOptions = new ProxyOptions();
+
+        // System proxy must be well configured. Check that this is the case.
+        if (environment.containsProperty("system.proxy.host")) {
+            proxyOptions.setHost(environment.getProperty("system.proxy.host"));
+        } else {
+            errors.append("'system.proxy.host' ");
+        }
+
+        try {
+            proxyOptions.setPort(Integer.parseInt(Objects.requireNonNull(environment.getProperty("system.proxy.port"))));
+        } catch (Exception e) {
+            errors.append("'system.proxy.port' [").append(environment.getProperty("system.proxy.port")).append("] ");
+        }
+
+        try {
+            proxyOptions.setType(ProxyType.valueOf(environment.getProperty("system.proxy.type")));
+        } catch (Exception e) {
+            errors.append("'system.proxy.type' [").append(environment.getProperty("system.proxy.type")).append("] ");
+        }
+
+        proxyOptions.setUsername(environment.getProperty("system.proxy.username"));
+        proxyOptions.setPassword(environment.getProperty("system.proxy.password"));
+
+        if (errors.length() == 0) {
+            return proxyOptions;
+        } else {
+            logger.warn(
+                "OAuth2 resource requires a system proxy to be defined but some configurations are missing or not well defined: {}",
+                errors
+            );
+            logger.warn("Ignoring system proxy");
+            return null;
+        }
     }
 }
