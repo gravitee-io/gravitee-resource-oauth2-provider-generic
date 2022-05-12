@@ -16,6 +16,16 @@ authorization server.
 This resource should be able to handle common authorization server from the market by providing a complete
 configuration about the way to apply token introspection.
 
+== Compatibility with APIM
+
+|===
+|Plugin version | APIM version
+
+|2.x and upper                  | 3.18.x to latest
+|1.16.x and upper               | 3.10.x to 3.17.x
+|Up to 1.15.x                   | Up to 3.9.x
+|===
+
 == Configuration
 
 You can configure the resource with the following options :

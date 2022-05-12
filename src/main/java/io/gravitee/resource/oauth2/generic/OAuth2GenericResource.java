@@ -20,10 +20,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
+import io.gravitee.common.util.VertxProxyOptionsUtils;
 import io.gravitee.common.utils.UUID;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.node.api.Node;
+import io.gravitee.node.api.configuration.Configuration;
 import io.gravitee.node.api.utils.NodeUtils;
+import io.gravitee.node.container.spring.SpringEnvironmentConfiguration;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
@@ -130,7 +133,8 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         if (configuration().isUseSystemProxy()) {
             try {
-                httpClientOptions.setProxyOptions(getSystemProxyOptions());
+                Configuration nodeConfig = new SpringEnvironmentConfiguration(applicationContext.getEnvironment());
+                VertxProxyOptionsUtils.setSystemProxy(httpClientOptions, nodeConfig);
             } catch (IllegalStateException e) {
                 logger.warn(
                     "OAuth2 resource requires a system proxy to be defined but some configurations are missing or not well defined: {}",
@@ -372,45 +376,5 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
-    }
-
-    private ProxyOptions getSystemProxyOptions() {
-        Environment environment = applicationContext.getEnvironment();
-
-        StringBuilder errors = new StringBuilder();
-        ProxyOptions proxyOptions = new ProxyOptions();
-
-        // System proxy must be well configured. Check that this is the case.
-        if (environment.containsProperty("system.proxy.host")) {
-            proxyOptions.setHost(environment.getProperty("system.proxy.host"));
-        } else {
-            errors.append("'system.proxy.host' ");
-        }
-
-        try {
-            proxyOptions.setPort(Integer.parseInt(Objects.requireNonNull(environment.getProperty("system.proxy.port"))));
-        } catch (Exception e) {
-            errors.append("'system.proxy.port' [").append(environment.getProperty("system.proxy.port")).append("] ");
-        }
-
-        try {
-            proxyOptions.setType(ProxyType.valueOf(environment.getProperty("system.proxy.type")));
-        } catch (Exception e) {
-            errors.append("'system.proxy.type' [").append(environment.getProperty("system.proxy.type")).append("] ");
-        }
-
-        proxyOptions.setUsername(environment.getProperty("system.proxy.username"));
-        proxyOptions.setPassword(environment.getProperty("system.proxy.password"));
-
-        if (errors.length() == 0) {
-            return proxyOptions;
-        } else {
-            logger.warn(
-                "OAuth2 resource requires a system proxy to be defined but some configurations are missing or not well defined: {}",
-                errors
-            );
-            logger.warn("Ignoring system proxy");
-            return null;
-        }
     }
 }
