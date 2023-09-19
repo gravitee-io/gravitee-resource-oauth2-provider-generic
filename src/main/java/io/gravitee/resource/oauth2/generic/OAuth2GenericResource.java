@@ -90,8 +90,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     protected void doStart() throws Exception {
         super.doStart();
 
-        logger.info("Starting an OAuth2 resource using authorization server at {}", configuration().getAuthorizationServerUrl());
-
         String sAuthorizationServerUrl = configuration().getAuthorizationServerUrl();
 
         if (sAuthorizationServerUrl != null && !sAuthorizationServerUrl.isEmpty()) {
@@ -125,6 +123,13 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                 .setDefaultHost(authorizationServerHost)
                 .setIdleTimeout(60)
                 .setConnectTimeout(10000);
+
+        // Extend with configuration from environment
+        Configuration configuration = applicationContext.getBean(Configuration.class);
+        logger.error("OAUTH2 : maxHeaderSize = {}", configuration.getProperty("resource.oauth2.http.maxHeaderSize", int.class, 8192));
+        httpClientOptions.setMaxHeaderSize(configuration.getProperty("resource.oauth2.http.maxHeaderSize", int.class, 8192));
+        httpClientOptions.setMaxInitialLineLength(configuration.getProperty("resource.oauth2.http.maxInitialLineLength", int.class, 4096));
+        httpClientOptions.setMaxChunkSize(configuration.getProperty("resource.oauth2.http.maxChunkSize", int.class, 8192));
 
         // Use SSL connection if authorization schema is set to HTTPS
         if (HTTPS_SCHEME.equalsIgnoreCase(authorizationServerUrl.getScheme())) {
