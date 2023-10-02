@@ -374,6 +374,14 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     }
 
     @Override
+    public String getUserClaim() {
+        if (configuration().getUserClaim() != null && !configuration().getUserClaim().isEmpty()) {
+            return configuration().getUserClaim();
+        }
+        return super.getUserClaim();
+    }
+
+    @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
     }

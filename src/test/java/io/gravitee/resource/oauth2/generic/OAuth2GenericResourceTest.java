@@ -23,6 +23,7 @@ import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpMethod;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.node.api.Node;
+import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.vertx.core.Vertx;
 import java.util.concurrent.CountDownLatch;
@@ -303,5 +304,16 @@ public class OAuth2GenericResourceTest {
         );
 
         Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void shouldGetCustomUserClaim() {
+        Mockito.when(configuration.getUserClaim()).thenReturn("customUserClaim");
+        Assert.assertEquals("customUserClaim", resource.getUserClaim());
+    }
+
+    @Test
+    public void shouldGetDefaultUserClaim() {
+        Assert.assertEquals("sub", resource.getUserClaim());
     }
 }
