@@ -300,6 +300,7 @@ public class OAuth2GenericResourceTest {
             "xxxx-xxxx-xxxx-xxxx",
             userInfoResponse -> {
                 Assert.assertFalse(userInfoResponse.isSuccess());
+                Assert.assertEquals("An error occurs while getting userinfo from access token", userInfoResponse.getPayload());
                 lock.countDown();
             }
         );
