@@ -28,6 +28,7 @@ import io.gravitee.node.api.configuration.Configuration;
 import io.gravitee.node.api.utils.NodeUtils;
 import io.gravitee.node.container.spring.SpringEnvironmentConfiguration;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
+import io.gravitee.resource.oauth2.api.OAuth2ResourceException;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
@@ -220,7 +221,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                     @Override
                     public void handle(Throwable event) {
                         logger.error("An error occurs while checking OAuth2 token", event);
-                        responseHandler.handle(new OAuth2Response(false, event.getMessage()));
+                        responseHandler.handle(new OAuth2Response(event));
                     }
                 }
             )
@@ -235,19 +236,10 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                     public void handle(AsyncResult<HttpClientResponse> asyncResponse) {
                                         if (asyncResponse.failed()) {
                                             logger.error("An error occurs while checking OAuth2 token", asyncResponse.cause());
-                                            responseHandler.handle(new OAuth2Response(false, asyncResponse.cause().getMessage()));
+                                            responseHandler.handle(new OAuth2Response(asyncResponse.cause()));
                                         } else {
                                             final HttpClientResponse response = asyncResponse.result();
                                             response.bodyHandler(buffer -> {
-                                                logger.debug(
-                                                    "Userinfo endpoint returns a response with a {} status code",
-                                                    response.statusCode()
-                                                );
-
-                                                logger.debug(
-                                                    "Introspection endpoint returns a response with a {} status code",
-                                                    response.statusCode()
-                                                );
                                                 if (response.statusCode() == HttpStatusCode.OK_200) {
                                                     // According to RFC 7662 : Note that a properly formed and authorized query for an inactive or
                                                     // otherwise invalid token (or a token the protected resource is not
@@ -267,11 +259,20 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                                             responseHandler.handle(new OAuth2Response(true, content));
                                                         }
                                                     } catch (IOException e) {
-                                                        logger.error("Unable to validate introspection endpoint payload: {}", content);
-                                                        responseHandler.handle(new OAuth2Response(false, content));
+                                                        logger.error("Unable to validate introspection endpoint payload: {}", content, e);
+                                                        responseHandler.handle(new OAuth2Response(e));
                                                     }
                                                 } else {
-                                                    responseHandler.handle(new OAuth2Response(false, buffer.toString()));
+                                                    logger.error(
+                                                        "An error occurs while checking OAuth2 token. Request ends with status {}: {}",
+                                                        response.statusCode(),
+                                                        buffer.toString()
+                                                    );
+                                                    responseHandler.handle(
+                                                        new OAuth2Response(
+                                                            new OAuth2ResourceException("An error occurs while checking OAuth2 token")
+                                                        )
+                                                    );
                                                 }
                                             });
                                         }
@@ -283,7 +284,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                     @Override
                                     public void handle(Throwable event) {
                                         logger.error("An error occurs while checking OAuth2 token", event);
-                                        responseHandler.handle(new OAuth2Response(false, event.getMessage()));
+                                        responseHandler.handle(new OAuth2Response(event));
                                     }
                                 }
                             );

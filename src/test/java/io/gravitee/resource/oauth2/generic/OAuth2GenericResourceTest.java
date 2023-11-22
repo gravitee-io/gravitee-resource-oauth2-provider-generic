@@ -198,6 +198,7 @@ public class OAuth2GenericResourceTest {
             "xxxx-xxxx-xxxx-xxxx",
             oAuth2Response -> {
                 Assert.assertFalse(oAuth2Response.isSuccess());
+                Assert.assertEquals("An error occurs while checking OAuth2 token", oAuth2Response.getPayload());
                 lock.countDown();
             }
         );
