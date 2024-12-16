@@ -21,7 +21,8 @@ configuration about the way to apply token introspection.
 |===
 |Plugin version | APIM version
 
-|2.x and upper                  | 3.18.x to latest
+|3.0 and upper                  | 4.4.x to latest
+|2.0 and upper                  | 3.18.x to 4.3.X
 |1.16.x and upper               | 3.10.x to 3.17.x
 |Up to 1.15.x                   | Up to 3.9.x
 |===
