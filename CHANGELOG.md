@@ -1,3 +1,16 @@
+# [3.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/2.1.0...3.0.0) (2024-12-16)
+
+
+### Bug Fixes
+
+* lint after gravitee parent update ([62197c6](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/62197c6f28b11c3e9495c4b91a6c874b68976f74))
+* use VertxProxyOptionsUtils from gravitee node ([1e67741](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/1e67741d387c51b780404e48be8cf9370e7bd86e))
+
+
+### BREAKING CHANGES
+
+* require APIM 4.4.x
+
 # [2.1.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/2.0.2...2.1.0) (2024-07-11)
 
 
