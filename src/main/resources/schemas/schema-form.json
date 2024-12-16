@@ -1,131 +1,119 @@
 {
-  "type" : "object",
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "properties" : {
-    "authorizationServerUrl": {
-      "title": "Authorization server URL",
-      "description": "URL of the authorization server",
-      "type" : "string",
-      "default": "https://authorization_server"
+    "type": "object",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+        "authorizationServerUrl": {
+            "title": "Authorization server URL",
+            "description": "URL of the authorization server",
+            "type": "string",
+            "default": "https://authorization_server"
+        },
+        "introspectionEndpoint": {
+            "title": "Token introspection endpoint",
+            "description": "Path which is used to introspect an incoming access token (must start with '/').",
+            "type": "string",
+            "default": "/oauth/check_token"
+        },
+        "useSystemProxy": {
+            "title": "System proxy",
+            "description": "Use system proxy",
+            "type": "boolean",
+            "default": false
+        },
+        "introspectionEndpointMethod": {
+            "title": "Token introspection method",
+            "description": "HTTP method used to introspect the access token.",
+            "type": "string",
+            "enum": ["GET", "POST"],
+            "default": "GET"
+        },
+        "scopeSeparator": {
+            "title": "Scope separator",
+            "description": "Separator used to separate scopes for token introspection (default is a whitespace)",
+            "type": "string",
+            "default": " "
+        },
+        "userInfoEndpoint": {
+            "title": "Userinfo endpoint",
+            "description": "Path which is used to get userinfo using incoming access token (must start with '/').",
+            "type": "string",
+            "default": "/userinfo"
+        },
+        "userInfoEndpointMethod": {
+            "title": "Userinfo  method",
+            "description": "HTTP method used to get userinfo.",
+            "type": "string",
+            "enum": ["GET", "POST"],
+            "default": "GET"
+        },
+        "clientId": {
+            "title": "Client Id",
+            "description": "The client identifier used for token introspection.",
+            "type": "string"
+        },
+        "clientSecret": {
+            "title": "Client Secret",
+            "description": "The client secret used for token introspection.",
+            "type": "string",
+            "format": "password"
+        },
+        "useClientAuthorizationHeader": {
+            "title": "Use HTTP header for client authorization",
+            "description": "To prevent token scanning attacks, the endpoint MUST also require some form of authorization to access this endpoint. In this case we are using an HTTP header for client authentication.",
+            "type": "boolean",
+            "default": true
+        },
+        "clientAuthorizationHeaderName": {
+            "type": "string",
+            "title": "Authorization header.",
+            "default": "Authorization"
+        },
+        "clientAuthorizationHeaderScheme": {
+            "type": "string",
+            "title": "Authorization scheme.",
+            "default": "Basic"
+        },
+        "tokenIsSuppliedByQueryParam": {
+            "title": "Use a query parameter to supply access token",
+            "description": "Access token is passed to the introspection endpoint using a query parameter.",
+            "type": "boolean",
+            "default": true
+        },
+        "tokenQueryParamName": {
+            "title": "Token query param name",
+            "description": "Query parameter used to supply access token.",
+            "type": "string",
+            "default": "token"
+        },
+        "tokenIsSuppliedByHttpHeader": {
+            "title": "Use an HTTP header to supply access token",
+            "description": "Access token is passed to the introspection endpoint using an HTTP header.",
+            "type": "boolean",
+            "default": false
+        },
+        "tokenHeaderName": {
+            "title": "HTTP header name",
+            "description": "HTTP header used to supply access token.",
+            "type": "string"
+        },
+        "tokenIsSuppliedByFormUrlEncoded": {
+            "title": "Use application/x-www-form-urlencoded form to send access token",
+            "description": "Send access token in application/x-www-form-urlencoded form.",
+            "type": "boolean",
+            "default": false
+        },
+        "tokenFormUrlEncodedName": {
+            "title": "Form param name",
+            "description": "Name of the form param in case of application/x-www-form-urlencoded.",
+            "type": "string",
+            "default": "token"
+        },
+        "userClaim": {
+            "title": "User claim",
+            "description": "User claim field used to store end user on log analytics",
+            "type": "string",
+            "default": "sub"
+        }
     },
-    "introspectionEndpoint" : {
-      "title": "Token introspection endpoint",
-      "description": "Path which is used to introspect an incoming access token (must start with '/').",
-      "type" : "string",
-      "default": "/oauth/check_token"
-    },
-    "useSystemProxy" : {
-      "title": "System proxy",
-      "description": "Use system proxy",
-      "type" : "boolean",
-      "default": false
-    },
-    "introspectionEndpointMethod" : {
-      "title": "Token introspection method",
-      "description": "HTTP method used to introspect the access token.",
-      "type" : "string",
-      "enum": [
-        "GET",
-        "POST"
-      ],
-      "default": "GET"
-    },
-    "scopeSeparator" : {
-      "title": "Scope separator",
-      "description": "Separator used to separate scopes for token introspection (default is a whitespace)",
-      "type": "string",
-      "default": " "
-    },
-    "userInfoEndpoint" : {
-      "title": "Userinfo endpoint",
-      "description": "Path which is used to get userinfo using incoming access token (must start with '/').",
-      "type" : "string",
-      "default": "/userinfo"
-    },
-    "userInfoEndpointMethod" : {
-      "title": "Userinfo  method",
-      "description": "HTTP method used to get userinfo.",
-      "type" : "string",
-      "enum": [
-        "GET",
-        "POST"
-      ],
-      "default": "GET"
-    },
-    "clientId" : {
-      "title": "Client Id",
-      "description": "The client identifier used for token introspection.",
-      "type" : "string"
-    },
-    "clientSecret" : {
-      "title": "Client Secret",
-      "description": "The client secret used for token introspection.",
-      "type" : "string",
-        "format": "password"
-    },
-    "useClientAuthorizationHeader": {
-      "title": "Use HTTP header for client authorization",
-      "description": "To prevent token scanning attacks, the endpoint MUST also require some form of authorization to access this endpoint. In this case we are using an HTTP header for client authentication.",
-      "type" : "boolean",
-      "default": true
-    },
-    "clientAuthorizationHeaderName" : {
-      "type" : "string",
-      "title": "Authorization header.",
-      "default": "Authorization"
-    },
-    "clientAuthorizationHeaderScheme" : {
-      "type" : "string",
-      "title": "Authorization scheme.",
-      "default": "Basic"
-    },
-    "tokenIsSuppliedByQueryParam" : {
-      "title": "Use a query parameter to supply access token",
-      "description": "Access token is passed to the introspection endpoint using a query parameter.",
-      "type" : "boolean",
-      "default": true
-    },
-    "tokenQueryParamName" : {
-      "title": "Token query param name",
-      "description": "Query parameter used to supply access token.",
-      "type" : "string",
-      "default": "token"
-    },
-    "tokenIsSuppliedByHttpHeader" : {
-      "title": "Use an HTTP header to supply access token",
-      "description": "Access token is passed to the introspection endpoint using an HTTP header.",
-      "type" : "boolean",
-      "default": false
-    },
-    "tokenHeaderName" : {
-      "title": "HTTP header name",
-      "description": "HTTP header used to supply access token.",
-      "type" : "string"
-    },
-    "tokenIsSuppliedByFormUrlEncoded" : {
-      "title": "Use application/x-www-form-urlencoded form to send access token",
-      "description": "Send access token in application/x-www-form-urlencoded form.",
-      "type" : "boolean",
-      "default": false
-    },
-    "tokenFormUrlEncodedName" : {
-      "title": "Form param name",
-      "description": "Name of the form param in case of application/x-www-form-urlencoded.",
-      "type" : "string",
-      "default": "token"
-    },
-    "userClaim" : {
-      "title": "User claim",
-      "description": "User claim field used to store end user on log analytics",
-      "type": "string",
-      "default": "sub"
-    }
-  },
-  "required": [
-    "authorizationServerUrl",
-    "introspectionEndpoint",
-    "introspectionEndpointMethod",
-    "clientId",
-    "clientSecret"
-  ]
+    "required": ["authorizationServerUrl", "introspectionEndpoint", "introspectionEndpointMethod", "clientId", "clientSecret"]
 }

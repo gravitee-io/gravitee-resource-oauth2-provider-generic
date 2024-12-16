@@ -1,11 +1,11 @@
-/**
- * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,9 +23,10 @@ import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpMethod;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.node.api.Node;
-import io.gravitee.resource.oauth2.api.OAuth2Resource;
+import io.gravitee.resource.api.AbstractConfigurableResource;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.vertx.core.Vertx;
+import java.lang.reflect.Field;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
@@ -33,10 +34,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.context.ApplicationContext;
 
@@ -59,11 +58,17 @@ public class OAuth2GenericResourceTest {
     @Mock
     private Node node;
 
-    @InjectMocks
     private OAuth2GenericResource resource;
 
     @Before
-    public void init() {
+    public void init() throws Exception {
+        resource = new OAuth2GenericResource();
+        resource.setApplicationContext(applicationContext);
+
+        Field configurationField = AbstractConfigurableResource.class.getDeclaredField("configuration");
+        configurationField.setAccessible(true);
+        configurationField.set(resource, configuration);
+
         Mockito.when(applicationContext.getBean(Node.class)).thenReturn(node);
         Mockito.when(applicationContext.getBean(Vertx.class)).thenReturn(Vertx.vertx());
     }
