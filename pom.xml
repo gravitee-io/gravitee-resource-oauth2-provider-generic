@@ -38,14 +38,18 @@
         <gravitee-bom.version>8.1.20</gravitee-bom.version>
         <gravitee-common.version>4.6.0</gravitee-common.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
-        <gravitee-gateway-api.version>3.8.1</gravitee-gateway-api.version>
+        <gravitee-gateway-api.version>3.9.0-alpha.25</gravitee-gateway-api.version>
         <gravitee-resource-oauth2-provider-api.version>1.4.0</gravitee-resource-oauth2-provider-api.version>
-        <gravitee-node.version>6.8.0</gravitee-node.version>
-
+        <gravitee-node.version>7.0.0-alpha.11</gravitee-node.version>
+        <gravitee-plugin.version>4.3.1</gravitee-plugin.version>
+        <gravitee-secret-api.version>1.0.0-alpha.3</gravitee-secret-api.version>
+        <gravitee-expression-language.version>4.0.0-alpha.3</gravitee-expression-language.version>
         <wiremock.version>3.10.0</wiremock.version>
+        <hibernate-validator.version>8.0.1.Final</hibernate-validator.version>
 
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
         <properties-maven-plugin.version>1.2.1</properties-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
 
         <!-- Property used by the publication job in CI-->
         <publish-folder-path>graviteeio-apim/plugins/resources</publish-folder-path>
@@ -108,6 +112,19 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.gravitee.plugin</groupId>
+            <artifactId>gravitee-plugin-annotation-processors</artifactId>
+            <version>${gravitee-plugin.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.el</groupId>
+            <artifactId>gravitee-expression-language</artifactId>
+            <version>${gravitee-expression-language.version}</version>
+        </dependency>
+
         <!-- HTTP client -->
         <dependency>
             <groupId>io.vertx</groupId>
@@ -130,10 +147,45 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- for annotation processing -->
+        <dependency>
+            <groupId>io.gravitee.secret</groupId>
+            <artifactId>gravitee-secret-api</artifactId>
+            <version>${gravitee-secret-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>${hibernate-validator.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Unit testing -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -146,7 +198,7 @@
 
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
+            <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -213,6 +265,25 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>${build-helper-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>generated-sources</source>
+                            </sources>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

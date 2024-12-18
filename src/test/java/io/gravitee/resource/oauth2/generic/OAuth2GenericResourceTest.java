@@ -16,12 +16,16 @@
 package io.gravitee.resource.oauth2.generic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpMethod;
 import io.gravitee.common.http.MediaType;
+import io.gravitee.el.TemplateEngine;
+import io.gravitee.el.spel.context.SecuredResolver;
 import io.gravitee.node.api.Node;
 import io.gravitee.resource.api.AbstractConfigurableResource;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
@@ -29,25 +33,23 @@ import io.vertx.core.Vertx;
 import java.lang.reflect.Field;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-@RunWith(MockitoJUnitRunner.class)
-public class OAuth2GenericResourceTest {
+@WireMockTest
+@ExtendWith({ MockitoExtension.class })
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+class OAuth2GenericResourceTest {
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
+    private static TemplateEngine templateEngine;
 
     @Mock
     private ApplicationContext applicationContext;
@@ -60,27 +62,35 @@ public class OAuth2GenericResourceTest {
 
     private OAuth2GenericResource resource;
 
-    @Before
-    public void init() throws Exception {
+    @BeforeAll
+    static void init() {
+        SecuredResolver.initialize(null);
+        templateEngine = TemplateEngine.templateEngine();
+    }
+
+    @BeforeEach
+    void before() throws Exception {
         resource = new OAuth2GenericResource();
         resource.setApplicationContext(applicationContext);
-
+        resource.setDeploymentContext(new TestDeploymentContext(templateEngine));
         Field configurationField = AbstractConfigurableResource.class.getDeclaredField("configuration");
         configurationField.setAccessible(true);
         configurationField.set(resource, configuration);
 
-        Mockito.when(applicationContext.getBean(Node.class)).thenReturn(node);
-        Mockito.when(applicationContext.getBean(Vertx.class)).thenReturn(Vertx.vertx());
+        lenient().when(applicationContext.getBean(Node.class)).thenReturn(node);
+        lenient().when(applicationContext.getBean(Vertx.class)).thenReturn(Vertx.vertx());
     }
 
     @Test
-    public void shouldCallWithHeader() throws Exception {
+    void should_call_with_header(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("http://localhost:" + wireMockRule.port() + "/oauth/introspect");
+        Mockito
+            .when(configuration.getIntrospectionEndpoint())
+            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
         Mockito.when(configuration.isTokenIsSuppliedByHttpHeader()).thenReturn(true);
         Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaders.AUTHORIZATION);
@@ -89,19 +99,19 @@ public class OAuth2GenericResourceTest {
 
         resource.introspect(accessToken, oAuth2Response -> lock.countDown());
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         verify(postRequestedFor(urlPathEqualTo("/oauth/introspect")).withHeader(HttpHeaders.AUTHORIZATION, equalTo(accessToken)));
     }
 
     @Test
-    public void shouldCallWithAuthorizationServerURL() throws Exception {
+    void should_call_with_authorization_server_url(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
         Mockito.when(configuration.isTokenIsSuppliedByHttpHeader()).thenReturn(true);
@@ -111,13 +121,13 @@ public class OAuth2GenericResourceTest {
 
         resource.introspect(accessToken, oAuth2Response -> lock.countDown());
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         verify(postRequestedFor(urlPathEqualTo("/oauth/introspect")).withHeader(HttpHeaders.AUTHORIZATION, equalTo(accessToken)));
     }
 
     @Test
-    public void shouldCallWithQueryParam() throws Exception {
+    void should_call_with_query_param(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(
             post(urlPathEqualTo("/oauth/introspect"))
@@ -127,7 +137,9 @@ public class OAuth2GenericResourceTest {
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("http://localhost:" + wireMockRule.port() + "/oauth/introspect");
+        Mockito
+            .when(configuration.getIntrospectionEndpoint())
+            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
         Mockito.when(configuration.isTokenIsSuppliedByQueryParam()).thenReturn(true);
         Mockito.when(configuration.getTokenQueryParamName()).thenReturn("token");
@@ -136,19 +148,21 @@ public class OAuth2GenericResourceTest {
 
         resource.introspect(accessToken, oAuth2Response -> lock.countDown());
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         verify(postRequestedFor(urlPathEqualTo(("/oauth/introspect"))).withQueryParam("token", equalTo(accessToken)));
     }
 
     @Test
-    public void shouldCallWithFormBody() throws Exception {
+    void should_call_with_form_body(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("http://localhost:" + wireMockRule.port() + "/oauth/introspect");
+        Mockito
+            .when(configuration.getIntrospectionEndpoint())
+            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
         Mockito.when(configuration.isTokenIsSuppliedByFormUrlEncoded()).thenReturn(true);
         Mockito.when(configuration.getTokenFormUrlEncodedName()).thenReturn("token");
@@ -157,7 +171,7 @@ public class OAuth2GenericResourceTest {
 
         resource.introspect(accessToken, oAuth2Response -> lock.countDown());
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         verify(
             postRequestedFor(urlEqualTo("/oauth/introspect"))
@@ -167,12 +181,14 @@ public class OAuth2GenericResourceTest {
     }
 
     @Test
-    public void shouldValidateAccessToken() throws Exception {
+    void should_validate_access_token(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("http://localhost:" + wireMockRule.port() + "/oauth/introspect");
+        Mockito
+            .when(configuration.getIntrospectionEndpoint())
+            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
 
         resource.doStart();
@@ -180,21 +196,23 @@ public class OAuth2GenericResourceTest {
         resource.introspect(
             "xxxx-xxxx-xxxx-xxxx",
             oAuth2Response -> {
-                Assert.assertTrue(oAuth2Response.isSuccess());
+                assertThat(oAuth2Response.isSuccess()).isTrue();
                 lock.countDown();
             }
         );
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
-    public void shouldNotValidateAccessToken() throws Exception {
+    void should_not_validate_access_token(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(401)));
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("http://localhost:" + wireMockRule.port() + "/oauth/introspect");
+        Mockito
+            .when(configuration.getIntrospectionEndpoint())
+            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
 
         resource.doStart();
@@ -202,22 +220,24 @@ public class OAuth2GenericResourceTest {
         resource.introspect(
             "xxxx-xxxx-xxxx-xxxx",
             oAuth2Response -> {
-                Assert.assertFalse(oAuth2Response.isSuccess());
-                Assert.assertEquals("An error occurs while checking OAuth2 token", oAuth2Response.getPayload());
+                assertThat(oAuth2Response.isSuccess()).isFalse();
+                assertThat(oAuth2Response.getPayload()).isEqualTo("An error occurs while checking OAuth2 token");
                 lock.countDown();
             }
         );
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
-    public void shouldNotValidateAccessToken_notActive() throws Exception {
+    void should_not_validate_access_token_not_active(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"active\": \"false\"}")));
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("http://localhost:" + wireMockRule.port() + "/oauth/introspect");
+        Mockito
+            .when(configuration.getIntrospectionEndpoint())
+            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
 
         resource.doStart();
@@ -225,16 +245,16 @@ public class OAuth2GenericResourceTest {
         resource.introspect(
             "xxxx-xxxx-xxxx-xxxx",
             oAuth2Response -> {
-                Assert.assertFalse(oAuth2Response.isSuccess());
+                assertThat(oAuth2Response.isSuccess()).isFalse();
                 lock.countDown();
             }
         );
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
-    public void shouldGetUserInfo() throws Exception {
+    void should_get_user_info(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(
             get(urlEqualTo("/userinfo"))
                 .willReturn(
@@ -244,7 +264,7 @@ public class OAuth2GenericResourceTest {
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
         Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.GET.name());
 
@@ -253,16 +273,16 @@ public class OAuth2GenericResourceTest {
         resource.userInfo(
             "xxxx-xxxx-xxxx-xxxx",
             userInfoResponse -> {
-                Assert.assertTrue(userInfoResponse.isSuccess());
+                assertThat(userInfoResponse.isSuccess()).isTrue();
                 lock.countDown();
             }
         );
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
-    public void shouldPostUserInfo() throws Exception {
+    void should_post_user_info(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(
             post(urlEqualTo("/userinfo"))
                 .willReturn(
@@ -272,7 +292,7 @@ public class OAuth2GenericResourceTest {
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
         Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.POST.name());
 
@@ -281,21 +301,21 @@ public class OAuth2GenericResourceTest {
         resource.userInfo(
             "xxxx-xxxx-xxxx-xxxx",
             userInfoResponse -> {
-                Assert.assertTrue(userInfoResponse.isSuccess());
+                assertThat(userInfoResponse.isSuccess()).isTrue();
                 lock.countDown();
             }
         );
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
-    public void shouldNotGetUserInfo() throws Exception {
+    void should_not_get_user_info(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(get(urlEqualTo("/userinfo")).willReturn(aResponse().withStatus(401)));
 
         final CountDownLatch lock = new CountDownLatch(1);
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRule.port());
+        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
         Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.GET.name());
 
@@ -304,23 +324,23 @@ public class OAuth2GenericResourceTest {
         resource.userInfo(
             "xxxx-xxxx-xxxx-xxxx",
             userInfoResponse -> {
-                Assert.assertFalse(userInfoResponse.isSuccess());
-                Assert.assertEquals("An error occurs while getting userinfo from access token", userInfoResponse.getPayload());
+                assertThat(userInfoResponse.isSuccess()).isFalse();
+                assertThat(userInfoResponse.getPayload()).isEqualTo("An error occurs while getting userinfo from access token");
                 lock.countDown();
             }
         );
 
-        Assert.assertEquals(true, lock.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
-    public void shouldGetCustomUserClaim() {
+    void should_get_custom_user_claim(WireMockRuntimeInfo wireMockRuntimeInfo) {
         Mockito.when(configuration.getUserClaim()).thenReturn("customUserClaim");
-        Assert.assertEquals("customUserClaim", resource.getUserClaim());
+        assertThat(resource.getUserClaim()).isEqualTo("customUserClaim");
     }
 
     @Test
-    public void shouldGetDefaultUserClaim() {
-        Assert.assertEquals("sub", resource.getUserClaim());
+    void should_get_default_user_claim() {
+        assertThat(resource.getUserClaim()).isEqualTo("sub");
     }
 }
