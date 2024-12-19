@@ -124,6 +124,7 @@
             <groupId>io.gravitee.el</groupId>
             <artifactId>gravitee-expression-language</artifactId>
             <version>${gravitee-expression-language.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- HTTP client -->
@@ -253,42 +254,6 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.hubspot.maven.plugins</groupId>
-                <artifactId>prettier-maven-plugin</artifactId>
-                <version>0.22</version>
-                <configuration>
-                    <nodeVersion>12.13.0</nodeVersion>
-                    <prettierJavaVersion>1.6.1</prettierJavaVersion>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>${build-helper-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>add-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>generated-sources</source>
-                            </sources>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
