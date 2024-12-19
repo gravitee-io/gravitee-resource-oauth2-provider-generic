@@ -57,6 +57,8 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfiguration> implements ApplicationContextAware {
 
+    public static final String ERROR_CHECKING_OAUTH_2_TOKEN = "An error occurs while checking OAuth2 token";
+    public static final String ERROR_GETTING_USERINFO = "An error occurs while getting userinfo from access token";
     private final Logger logger = LoggerFactory.getLogger(OAuth2GenericResource.class);
 
     // Pattern reuse for duplicate slash removal
@@ -102,8 +104,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     protected void doStart() throws Exception {
         super.doStart();
 
-        configuration =
-            new OAuth2ResourceConfigurationEvaluator(super.configuration()).evalNow(new ExecutionContextAdapter(deploymentContext));
+        configuration = new OAuth2ResourceConfigurationEvaluator(configuration()).evalNow(deploymentContext);
 
         logger.info("Starting an OAuth2 resource using authorization server at {}", configuration().getAuthorizationServerUrl());
 
@@ -190,7 +191,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     public void introspect(String accessToken, Handler<OAuth2Response> responseHandler) {
         HttpClient httpClient = httpClients.computeIfAbsent(Thread.currentThread(), context -> vertx.createHttpClient(httpClientOptions));
 
-        OAuth2ResourceConfiguration configuration = configuration();
         StringBuilder uriBuilder = new StringBuilder(introspectionEndpointURI);
 
         if (configuration.isTokenIsSuppliedByQueryParam()) {
@@ -235,14 +235,14 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         httpClient
             .request(reqOptions)
             .onFailure(event -> {
-                logger.error("An error occurs while checking OAuth2 token", event);
+                logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, event);
                 responseHandler.handle(new OAuth2Response(event));
             })
             .onSuccess(request -> {
                 request
                     .response(asyncResponse -> {
                         if (asyncResponse.failed()) {
-                            logger.error("An error occurs while checking OAuth2 token", asyncResponse.cause());
+                            logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, asyncResponse.cause());
                             responseHandler.handle(new OAuth2Response(asyncResponse.cause()));
                         } else {
                             final HttpClientResponse response = asyncResponse.result();
@@ -273,17 +273,15 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                     logger.error(
                                         "An error occurs while checking OAuth2 token. Request ends with status {}: {}",
                                         response.statusCode(),
-                                        buffer.toString()
+                                        buffer
                                     );
-                                    responseHandler.handle(
-                                        new OAuth2Response(new OAuth2ResourceException("An error occurs while checking OAuth2 token"))
-                                    );
+                                    responseHandler.handle(new OAuth2Response(new OAuth2ResourceException(ERROR_CHECKING_OAUTH_2_TOKEN)));
                                 }
                             });
                         }
                     })
                     .exceptionHandler(event -> {
-                        logger.error("An error occurs while checking OAuth2 token", event);
+                        logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, event);
                         responseHandler.handle(new OAuth2Response(event));
                     });
 
@@ -300,8 +298,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {
         HttpClient httpClient = httpClients.computeIfAbsent(Thread.currentThread(), context -> vertx.createHttpClient(httpClientOptions));
 
-        OAuth2ResourceConfiguration configuration = configuration();
-
         HttpMethod httpMethod = HttpMethod.valueOf(configuration.getUserInfoEndpointMethod().toUpperCase());
 
         logger.debug("Get userinfo by requesting {} [{}]", userInfoEndpointURI, configuration.getUserInfoEndpointMethod());
@@ -317,14 +313,14 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         httpClient
             .request(reqOptions)
             .onFailure(event -> {
-                logger.error("An error occurs while getting userinfo from access token", event);
+                logger.error(ERROR_GETTING_USERINFO, event);
                 responseHandler.handle(new UserInfoResponse(event));
             })
             .onSuccess(request ->
                 request
                     .response(asyncResponse -> {
                         if (asyncResponse.failed()) {
-                            logger.error("An error occurs while getting userinfo from access token", asyncResponse.cause());
+                            logger.error(ERROR_GETTING_USERINFO, asyncResponse.cause());
                             responseHandler.handle(new UserInfoResponse(asyncResponse.cause()));
                         } else {
                             final HttpClientResponse response = asyncResponse.result();
@@ -337,19 +333,15 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                     logger.error(
                                         "An error occurs while getting userinfo from access token. Request ends with status {}: {}",
                                         response.statusCode(),
-                                        buffer.toString()
+                                        buffer
                                     );
-                                    responseHandler.handle(
-                                        new UserInfoResponse(
-                                            new OAuth2ResourceException("An error occurs while getting userinfo from access token")
-                                        )
-                                    );
+                                    responseHandler.handle(new UserInfoResponse(new OAuth2ResourceException(ERROR_GETTING_USERINFO)));
                                 }
                             });
                         }
                     })
                     .exceptionHandler(event -> {
-                        logger.error("An error occurs while getting userinfo from access token", event);
+                        logger.error(ERROR_GETTING_USERINFO, event);
                         responseHandler.handle(new UserInfoResponse(event));
                     })
                     .end()

@@ -16,7 +16,6 @@
 package io.gravitee.resource.oauth2.generic;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Fail.fail;
 
 import io.gravitee.el.TemplateEngine;
@@ -25,6 +24,7 @@ import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.gravitee.secrets.api.el.DelegatingEvaluatedSecretsMethods;
 import io.gravitee.secrets.api.el.EvaluatedSecretsMethods;
+import io.gravitee.secrets.api.el.FieldKind;
 import io.gravitee.secrets.api.el.SecretFieldAccessControl;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -83,33 +83,29 @@ class OAuth2GenericResourceConfigurationTest {
 
     @Test
     void should_eval_config() throws Exception {
-        OAuth2ResourceConfiguration oAuth2ResourceConfiguration = new OAuth2ResourceConfiguration();
-        oAuth2ResourceConfiguration.setAuthorizationServerUrl("http://localhost:8080/auth");
-        oAuth2ResourceConfiguration.setClientSecret(formatEL("that is a secret"));
-        OAuth2GenericResource oAuth2GenericResource = underTest(oAuth2ResourceConfiguration);
+        OAuth2ResourceConfiguration config = new OAuth2ResourceConfiguration();
+        config.setAuthorizationServerUrl("http://localhost:8080/auth");
+        config.setClientSecret(asSecretEL("that is a secret"));
+        OAuth2GenericResource oAuth2GenericResource = underTest(config);
         oAuth2GenericResource.start();
 
         assertThat(oAuth2GenericResource.configuration().getClientSecret()).isEqualTo("that is a secret");
 
-        // TODO remove
-        assertThat(recordedSecretFieldAccessControls).hasSize(1);
-        assertThat(recordedSecretFieldAccessControls.get(0)).isNull();
-        // TODO add
-        //        assertThat(recordedSecretFieldAccessControls)
-        //            .containsExactlyInAnyOrder(
-        //                new SecretFieldAccessControl(true, FieldKind.PASSWORD, "clientSecret")
-        //            );
+        assertThat(recordedSecretFieldAccessControls)
+            .containsExactlyInAnyOrder(new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientSecret"));
     }
 
     @Test
-    @Disabled("TODO renable it!")
-    void should_not_be_able_to_resolve_secret_on_non_sensitive_field() throws IllegalAccessException {
+    void should_not_be_able_to_resolve_secret_on_non_sensitive_field() throws Exception {
         OAuth2ResourceConfiguration config = new OAuth2ResourceConfiguration();
-        OAuth2GenericResource redisCacheResource = underTest(config);
-        assertThatCode(redisCacheResource::start).isInstanceOf(Exception.class);
+        config.setAuthorizationServerUrl("http://localhost:8080/auth");
+        config.setClientAuthorizationHeaderName(asSecretEL("X-Test"));
+        OAuth2GenericResource oAuth2GenericResource = underTest(config);
+        oAuth2GenericResource.start();
+        assertThat(recordedSecretFieldAccessControls).containsExactlyInAnyOrder(new SecretFieldAccessControl(false, null, null));
     }
 
-    private static String formatEL(String password) {
+    private static String asSecretEL(String password) {
         return "{#secrets.fromGrant('%s', #%s)}".formatted(password, SecretFieldAccessControl.EL_VARIABLE);
     }
 

@@ -21,7 +21,6 @@ import static org.mockito.Mockito.lenient;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpMethod;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.el.TemplateEngine;
@@ -29,10 +28,12 @@ import io.gravitee.el.spel.context.SecuredResolver;
 import io.gravitee.node.api.Node;
 import io.gravitee.resource.api.AbstractConfigurableResource;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.Vertx;
 import java.lang.reflect.Field;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -86,22 +87,23 @@ class OAuth2GenericResourceTest {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
-        final CountDownLatch lock = new CountDownLatch(1);
-
         Mockito
             .when(configuration.getIntrospectionEndpoint())
             .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
         Mockito.when(configuration.isTokenIsSuppliedByHttpHeader()).thenReturn(true);
-        Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaders.AUTHORIZATION);
+        Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaderNames.AUTHORIZATION.toString());
 
         resource.doStart();
 
-        resource.introspect(accessToken, oAuth2Response -> lock.countDown());
+        AtomicBoolean check = new AtomicBoolean();
+        resource.introspect(accessToken, oAuth2Response -> check.set(true));
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
 
-        verify(postRequestedFor(urlPathEqualTo("/oauth/introspect")).withHeader(HttpHeaders.AUTHORIZATION, equalTo(accessToken)));
+        verify(
+            postRequestedFor(urlPathEqualTo("/oauth/introspect")).withHeader(HttpHeaderNames.AUTHORIZATION.toString(), equalTo(accessToken))
+        );
     }
 
     @Test
@@ -109,21 +111,23 @@ class OAuth2GenericResourceTest {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("/oauth/introspect");
         Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
         Mockito.when(configuration.isTokenIsSuppliedByHttpHeader()).thenReturn(true);
-        Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaders.AUTHORIZATION);
+        Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaderNames.AUTHORIZATION.toString());
 
         resource.doStart();
 
-        resource.introspect(accessToken, oAuth2Response -> lock.countDown());
+        resource.introspect(accessToken, oAuth2Response -> check.set(true));
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
 
-        verify(postRequestedFor(urlPathEqualTo("/oauth/introspect")).withHeader(HttpHeaders.AUTHORIZATION, equalTo(accessToken)));
+        verify(
+            postRequestedFor(urlPathEqualTo("/oauth/introspect")).withHeader(HttpHeaderNames.AUTHORIZATION.toString(), equalTo(accessToken))
+        );
     }
 
     @Test
@@ -135,7 +139,7 @@ class OAuth2GenericResourceTest {
                 .willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}"))
         );
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito
             .when(configuration.getIntrospectionEndpoint())
@@ -146,9 +150,9 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.introspect(accessToken, oAuth2Response -> lock.countDown());
+        resource.introspect(accessToken, oAuth2Response -> check.set(true));
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
 
         verify(postRequestedFor(urlPathEqualTo(("/oauth/introspect"))).withQueryParam("token", equalTo(accessToken)));
     }
@@ -158,7 +162,7 @@ class OAuth2GenericResourceTest {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito
             .when(configuration.getIntrospectionEndpoint())
@@ -169,13 +173,13 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.introspect(accessToken, oAuth2Response -> lock.countDown());
+        resource.introspect(accessToken, oAuth2Response -> check.set(true));
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
 
         verify(
             postRequestedFor(urlEqualTo("/oauth/introspect"))
-                .withHeader(HttpHeaders.CONTENT_TYPE, equalTo(MediaType.APPLICATION_FORM_URLENCODED))
+                .withHeader(HttpHeaderNames.CONTENT_TYPE.toString(), equalTo(MediaType.APPLICATION_FORM_URLENCODED))
                 .withRequestBody(equalTo("token=" + accessToken))
         );
     }
@@ -184,7 +188,7 @@ class OAuth2GenericResourceTest {
     void should_validate_access_token(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito
             .when(configuration.getIntrospectionEndpoint())
@@ -197,18 +201,18 @@ class OAuth2GenericResourceTest {
             "xxxx-xxxx-xxxx-xxxx",
             oAuth2Response -> {
                 assertThat(oAuth2Response.isSuccess()).isTrue();
-                lock.countDown();
+                check.set(true);
             }
         );
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
 
     @Test
     void should_not_validate_access_token(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(401)));
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito
             .when(configuration.getIntrospectionEndpoint())
@@ -222,18 +226,18 @@ class OAuth2GenericResourceTest {
             oAuth2Response -> {
                 assertThat(oAuth2Response.isSuccess()).isFalse();
                 assertThat(oAuth2Response.getPayload()).isEqualTo("An error occurs while checking OAuth2 token");
-                lock.countDown();
+                check.set(true);
             }
         );
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
 
     @Test
     void should_not_validate_access_token_not_active(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"active\": \"false\"}")));
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito
             .when(configuration.getIntrospectionEndpoint())
@@ -246,11 +250,11 @@ class OAuth2GenericResourceTest {
             "xxxx-xxxx-xxxx-xxxx",
             oAuth2Response -> {
                 assertThat(oAuth2Response.isSuccess()).isFalse();
-                lock.countDown();
+                check.set(true);
             }
         );
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
 
     @Test
@@ -262,7 +266,7 @@ class OAuth2GenericResourceTest {
                 )
         );
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
@@ -274,11 +278,11 @@ class OAuth2GenericResourceTest {
             "xxxx-xxxx-xxxx-xxxx",
             userInfoResponse -> {
                 assertThat(userInfoResponse.isSuccess()).isTrue();
-                lock.countDown();
+                check.set(true);
             }
         );
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
 
     @Test
@@ -290,7 +294,7 @@ class OAuth2GenericResourceTest {
                 )
         );
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
@@ -302,18 +306,18 @@ class OAuth2GenericResourceTest {
             "xxxx-xxxx-xxxx-xxxx",
             userInfoResponse -> {
                 assertThat(userInfoResponse.isSuccess()).isTrue();
-                lock.countDown();
+                check.set(true);
             }
         );
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
 
     @Test
     void should_not_get_user_info(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(get(urlEqualTo("/userinfo")).willReturn(aResponse().withStatus(401)));
 
-        final CountDownLatch lock = new CountDownLatch(1);
+        AtomicBoolean check = new AtomicBoolean();
 
         Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
         Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
@@ -326,11 +330,11 @@ class OAuth2GenericResourceTest {
             userInfoResponse -> {
                 assertThat(userInfoResponse.isSuccess()).isFalse();
                 assertThat(userInfoResponse.getPayload()).isEqualTo("An error occurs while getting userinfo from access token");
-                lock.countDown();
+                check.set(true);
             }
         );
 
-        assertThat(lock.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
 
     @Test

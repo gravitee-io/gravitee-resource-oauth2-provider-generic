@@ -17,17 +17,14 @@ package io.gravitee.resource.oauth2.generic.configuration;
 
 import io.gravitee.plugin.annotation.ConfigurationEvaluator;
 import io.gravitee.resource.api.ResourceConfiguration;
-import lombok.Getter;
-import lombok.Setter;
+import io.gravitee.secrets.api.annotation.Secret;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
-@ConfigurationEvaluator(attributePrefix = "oauth-generic")
-@Getter
-@Setter
+@ConfigurationEvaluator
 public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     private String authorizationServerUrl;
@@ -37,7 +34,10 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
     private String userInfoEndpoint;
     private String userInfoEndpointMethod;
     private String clientId;
+
+    @Secret
     private String clientSecret;
+
     private boolean useClientAuthorizationHeader;
     private String clientAuthorizationHeaderName;
     private String clientAuthorizationHeaderScheme;
@@ -49,4 +49,156 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
     private String tokenFormUrlEncodedName;
     private String scopeSeparator;
     private String userClaim;
+
+    public String getAuthorizationServerUrl() {
+        return authorizationServerUrl;
+    }
+
+    public void setAuthorizationServerUrl(String authorizationServerUrl) {
+        this.authorizationServerUrl = authorizationServerUrl;
+    }
+
+    public String getIntrospectionEndpoint() {
+        return introspectionEndpoint;
+    }
+
+    public void setIntrospectionEndpoint(String introspectionEndpoint) {
+        this.introspectionEndpoint = introspectionEndpoint;
+    }
+
+    public boolean isUseSystemProxy() {
+        return useSystemProxy;
+    }
+
+    public void setUseSystemProxy(boolean useSystemProxy) {
+        this.useSystemProxy = useSystemProxy;
+    }
+
+    public String getIntrospectionEndpointMethod() {
+        return introspectionEndpointMethod;
+    }
+
+    public void setIntrospectionEndpointMethod(String introspectionEndpointMethod) {
+        this.introspectionEndpointMethod = introspectionEndpointMethod;
+    }
+
+    public String getUserInfoEndpoint() {
+        return userInfoEndpoint;
+    }
+
+    public void setUserInfoEndpoint(String userInfoEndpoint) {
+        this.userInfoEndpoint = userInfoEndpoint;
+    }
+
+    public String getUserInfoEndpointMethod() {
+        return userInfoEndpointMethod;
+    }
+
+    public void setUserInfoEndpointMethod(String userInfoEndpointMethod) {
+        this.userInfoEndpointMethod = userInfoEndpointMethod;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
+    }
+
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
+
+    public boolean isUseClientAuthorizationHeader() {
+        return useClientAuthorizationHeader;
+    }
+
+    public void setUseClientAuthorizationHeader(boolean useClientAuthorizationHeader) {
+        this.useClientAuthorizationHeader = useClientAuthorizationHeader;
+    }
+
+    public String getClientAuthorizationHeaderName() {
+        return clientAuthorizationHeaderName;
+    }
+
+    public void setClientAuthorizationHeaderName(String clientAuthorizationHeaderName) {
+        this.clientAuthorizationHeaderName = clientAuthorizationHeaderName;
+    }
+
+    public String getClientAuthorizationHeaderScheme() {
+        return clientAuthorizationHeaderScheme;
+    }
+
+    public void setClientAuthorizationHeaderScheme(String clientAuthorizationHeaderScheme) {
+        this.clientAuthorizationHeaderScheme = clientAuthorizationHeaderScheme;
+    }
+
+    public boolean isTokenIsSuppliedByQueryParam() {
+        return tokenIsSuppliedByQueryParam;
+    }
+
+    public void setTokenIsSuppliedByQueryParam(boolean tokenIsSuppliedByQueryParam) {
+        this.tokenIsSuppliedByQueryParam = tokenIsSuppliedByQueryParam;
+    }
+
+    public String getTokenQueryParamName() {
+        return tokenQueryParamName;
+    }
+
+    public void setTokenQueryParamName(String tokenQueryParamName) {
+        this.tokenQueryParamName = tokenQueryParamName;
+    }
+
+    public boolean isTokenIsSuppliedByHttpHeader() {
+        return tokenIsSuppliedByHttpHeader;
+    }
+
+    public void setTokenIsSuppliedByHttpHeader(boolean tokenIsSuppliedByHttpHeader) {
+        this.tokenIsSuppliedByHttpHeader = tokenIsSuppliedByHttpHeader;
+    }
+
+    public String getTokenHeaderName() {
+        return tokenHeaderName;
+    }
+
+    public void setTokenHeaderName(String tokenHeaderName) {
+        this.tokenHeaderName = tokenHeaderName;
+    }
+
+    public boolean isTokenIsSuppliedByFormUrlEncoded() {
+        return tokenIsSuppliedByFormUrlEncoded;
+    }
+
+    public void setTokenIsSuppliedByFormUrlEncoded(boolean tokenIsSuppliedByFormUrlEncoded) {
+        this.tokenIsSuppliedByFormUrlEncoded = tokenIsSuppliedByFormUrlEncoded;
+    }
+
+    public String getTokenFormUrlEncodedName() {
+        return tokenFormUrlEncodedName;
+    }
+
+    public void setTokenFormUrlEncodedName(String tokenFormUrlEncodedName) {
+        this.tokenFormUrlEncodedName = tokenFormUrlEncodedName;
+    }
+
+    public String getScopeSeparator() {
+        return scopeSeparator;
+    }
+
+    public void setScopeSeparator(String scopeSeparator) {
+        this.scopeSeparator = scopeSeparator;
+    }
+
+    public String getUserClaim() {
+        return userClaim;
+    }
+
+    public void setUserClaim(String userClaim) {
+        this.userClaim = userClaim;
+    }
 }
