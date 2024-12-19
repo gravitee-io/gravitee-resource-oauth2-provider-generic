@@ -15,51 +15,39 @@
  */
 package io.gravitee.resource.oauth2.generic.configuration;
 
+import io.gravitee.plugin.annotation.ConfigurationEvaluator;
 import io.gravitee.resource.api.ResourceConfiguration;
+import io.gravitee.secrets.api.annotation.Secret;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
+@ConfigurationEvaluator
 public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     private String authorizationServerUrl;
-
     private String introspectionEndpoint;
-
     private boolean useSystemProxy;
-
     private String introspectionEndpointMethod;
-
     private String userInfoEndpoint;
-
     private String userInfoEndpointMethod;
-
     private String clientId;
 
+    @Secret
     private String clientSecret;
 
     private boolean useClientAuthorizationHeader;
-
     private String clientAuthorizationHeaderName;
-
     private String clientAuthorizationHeaderScheme;
-
     private boolean tokenIsSuppliedByQueryParam;
-
     private String tokenQueryParamName;
-
     private boolean tokenIsSuppliedByHttpHeader;
-
     private String tokenHeaderName;
-
     private boolean tokenIsSuppliedByFormUrlEncoded;
-
     private String tokenFormUrlEncodedName;
-
     private String scopeSeparator;
-
     private String userClaim;
 
     public String getAuthorizationServerUrl() {
@@ -92,6 +80,22 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     public void setIntrospectionEndpointMethod(String introspectionEndpointMethod) {
         this.introspectionEndpointMethod = introspectionEndpointMethod;
+    }
+
+    public String getUserInfoEndpoint() {
+        return userInfoEndpoint;
+    }
+
+    public void setUserInfoEndpoint(String userInfoEndpoint) {
+        this.userInfoEndpoint = userInfoEndpoint;
+    }
+
+    public String getUserInfoEndpointMethod() {
+        return userInfoEndpointMethod;
+    }
+
+    public void setUserInfoEndpointMethod(String userInfoEndpointMethod) {
+        this.userInfoEndpointMethod = userInfoEndpointMethod;
     }
 
     public String getClientId() {
@@ -180,22 +184,6 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     public void setTokenFormUrlEncodedName(String tokenFormUrlEncodedName) {
         this.tokenFormUrlEncodedName = tokenFormUrlEncodedName;
-    }
-
-    public String getUserInfoEndpoint() {
-        return userInfoEndpoint;
-    }
-
-    public void setUserInfoEndpoint(String userInfoEndpoint) {
-        this.userInfoEndpoint = userInfoEndpoint;
-    }
-
-    public String getUserInfoEndpointMethod() {
-        return userInfoEndpointMethod;
-    }
-
-    public void setUserInfoEndpointMethod(String userInfoEndpointMethod) {
-        this.userInfoEndpointMethod = userInfoEndpointMethod;
     }
 
     public String getScopeSeparator() {
