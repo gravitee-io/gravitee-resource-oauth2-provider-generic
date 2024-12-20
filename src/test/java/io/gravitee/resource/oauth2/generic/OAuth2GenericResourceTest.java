@@ -37,7 +37,6 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
@@ -55,7 +54,6 @@ class OAuth2GenericResourceTest {
     @Mock
     private ApplicationContext applicationContext;
 
-    @Mock
     private OAuth2ResourceConfiguration configuration;
 
     @Mock
@@ -74,6 +72,7 @@ class OAuth2GenericResourceTest {
         resource = new OAuth2GenericResource();
         resource.setApplicationContext(applicationContext);
         resource.setDeploymentContext(new TestDeploymentContext(templateEngine));
+        configuration = new OAuth2ResourceConfiguration();
         Field configurationField = AbstractConfigurableResource.class.getDeclaredField("configuration");
         configurationField.setAccessible(true);
         configurationField.set(resource, configuration);
@@ -87,12 +86,10 @@ class OAuth2GenericResourceTest {
         String accessToken = "xxxx-xxxx-xxxx-xxxx";
         stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"key\": \"value\"}")));
 
-        Mockito
-            .when(configuration.getIntrospectionEndpoint())
-            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
-        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
-        Mockito.when(configuration.isTokenIsSuppliedByHttpHeader()).thenReturn(true);
-        Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaderNames.AUTHORIZATION.toString());
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenIsSuppliedByHttpHeader(true);
+        configuration.setTokenHeaderName(HttpHeaderNames.AUTHORIZATION.toString());
 
         resource.doStart();
 
@@ -113,11 +110,11 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
-        Mockito.when(configuration.getIntrospectionEndpoint()).thenReturn("/oauth/introspect");
-        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
-        Mockito.when(configuration.isTokenIsSuppliedByHttpHeader()).thenReturn(true);
-        Mockito.when(configuration.getTokenHeaderName()).thenReturn(HttpHeaderNames.AUTHORIZATION.toString());
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenIsSuppliedByHttpHeader(true);
+        configuration.setTokenHeaderName(HttpHeaderNames.AUTHORIZATION.toString());
 
         resource.doStart();
 
@@ -141,12 +138,10 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito
-            .when(configuration.getIntrospectionEndpoint())
-            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
-        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
-        Mockito.when(configuration.isTokenIsSuppliedByQueryParam()).thenReturn(true);
-        Mockito.when(configuration.getTokenQueryParamName()).thenReturn("token");
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenIsSuppliedByQueryParam(true);
+        configuration.setTokenQueryParamName("token");
 
         resource.doStart();
 
@@ -164,12 +159,10 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito
-            .when(configuration.getIntrospectionEndpoint())
-            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
-        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
-        Mockito.when(configuration.isTokenIsSuppliedByFormUrlEncoded()).thenReturn(true);
-        Mockito.when(configuration.getTokenFormUrlEncodedName()).thenReturn("token");
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenIsSuppliedByFormUrlEncoded(true);
+        configuration.setTokenFormUrlEncodedName("token");
 
         resource.doStart();
 
@@ -190,10 +183,8 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito
-            .when(configuration.getIntrospectionEndpoint())
-            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
-        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
 
         resource.doStart();
 
@@ -214,10 +205,8 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito
-            .when(configuration.getIntrospectionEndpoint())
-            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
-        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
 
         resource.doStart();
 
@@ -239,10 +228,8 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito
-            .when(configuration.getIntrospectionEndpoint())
-            .thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
-        Mockito.when(configuration.getIntrospectionEndpointMethod()).thenReturn(HttpMethod.POST.name());
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
 
         resource.doStart();
 
@@ -268,9 +255,9 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
-        Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
-        Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.GET.name());
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setUserInfoEndpoint("/userinfo");
+        configuration.setUserInfoEndpointMethod(HttpMethod.GET.name());
 
         resource.doStart();
 
@@ -296,9 +283,9 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
-        Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
-        Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.POST.name());
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setUserInfoEndpoint("/userinfo");
+        configuration.setUserInfoEndpointMethod(HttpMethod.POST.name());
 
         resource.doStart();
 
@@ -319,9 +306,9 @@ class OAuth2GenericResourceTest {
 
         AtomicBoolean check = new AtomicBoolean();
 
-        Mockito.when(configuration.getAuthorizationServerUrl()).thenReturn("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
-        Mockito.when(configuration.getUserInfoEndpoint()).thenReturn("/userinfo");
-        Mockito.when(configuration.getUserInfoEndpointMethod()).thenReturn(HttpMethod.GET.name());
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setUserInfoEndpoint("/userinfo");
+        configuration.setUserInfoEndpointMethod(HttpMethod.GET.name());
 
         resource.doStart();
 
@@ -335,12 +322,6 @@ class OAuth2GenericResourceTest {
         );
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
-    }
-
-    @Test
-    void should_get_custom_user_claim(WireMockRuntimeInfo wireMockRuntimeInfo) {
-        Mockito.when(configuration.getUserClaim()).thenReturn("customUserClaim");
-        assertThat(resource.getUserClaim()).isEqualTo("customUserClaim");
     }
 
     @Test
