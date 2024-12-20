@@ -17,11 +17,12 @@ package io.gravitee.resource.oauth2.generic;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.common.utils.UUID;
 import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http.HttpHeaderNames;
+import io.gravitee.gateway.reactive.api.context.DeploymentContext;
 import io.gravitee.node.api.Node;
 import io.gravitee.node.api.configuration.Configuration;
 import io.gravitee.node.api.utils.NodeUtils;
@@ -32,20 +33,17 @@ import io.gravitee.resource.oauth2.api.OAuth2ResourceException;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
-import io.vertx.core.AsyncResult;
+import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfigurationEvaluator;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.RequestOptions;
+import io.vertx.core.http.*;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import javax.inject.Inject;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -59,6 +57,8 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfiguration> implements ApplicationContextAware {
 
+    public static final String ERROR_CHECKING_OAUTH_2_TOKEN = "An error occurs while checking OAuth2 token";
+    public static final String ERROR_GETTING_USERINFO = "An error occurs while getting userinfo from access token";
     private final Logger logger = LoggerFactory.getLogger(OAuth2GenericResource.class);
 
     // Pattern reuse for duplicate slash removal
@@ -86,9 +86,25 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private OAuth2ResourceConfiguration configuration;
+
+    @Inject
+    @Setter
+    private DeploymentContext deploymentContext;
+
+    @Override
+    public OAuth2ResourceConfiguration configuration() {
+        if (configuration == null) {
+            return super.configuration();
+        }
+        return configuration;
+    }
+
     @Override
     protected void doStart() throws Exception {
         super.doStart();
+
+        configuration = new OAuth2ResourceConfigurationEvaluator(configuration()).evalNow(deploymentContext);
 
         logger.info("Starting an OAuth2 resource using authorization server at {}", configuration().getAuthorizationServerUrl());
 
@@ -114,15 +130,23 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             authorizationServerUrl = URI.create(introspectionEndpointURI);
         }
 
-        int authorizationServerPort = authorizationServerUrl.getPort() != -1
-            ? authorizationServerUrl.getPort()
-            : (HTTPS_SCHEME.equals(authorizationServerUrl.getScheme()) ? 443 : 80);
-        String authorizationServerHost = authorizationServerUrl.getHost();
+        if (authorizationServerUrl == null) {
+            throw new IllegalArgumentException("Either userInfoEndpointURI or introspectionEndpointURI should be set");
+        }
+
+        int authorizationServerPort;
+        if (authorizationServerUrl.getPort() != -1) {
+            authorizationServerPort = authorizationServerUrl.getPort();
+        } else if (HTTPS_SCHEME.equals(authorizationServerUrl.getScheme())) {
+            authorizationServerPort = 443;
+        } else {
+            authorizationServerPort = 80;
+        }
 
         httpClientOptions =
             new HttpClientOptions()
                 .setDefaultPort(authorizationServerPort)
-                .setDefaultHost(authorizationServerHost)
+                .setDefaultHost(authorizationServerUrl.getHost())
                 .setIdleTimeout(60)
                 .setConnectTimeout(10000);
 
@@ -167,27 +191,22 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     public void introspect(String accessToken, Handler<OAuth2Response> responseHandler) {
         HttpClient httpClient = httpClients.computeIfAbsent(Thread.currentThread(), context -> vertx.createHttpClient(httpClientOptions));
 
-        OAuth2ResourceConfiguration configuration = configuration();
-        StringBuilder introspectionUriBuilder = new StringBuilder(introspectionEndpointURI);
+        StringBuilder uriBuilder = new StringBuilder(introspectionEndpointURI);
 
         if (configuration.isTokenIsSuppliedByQueryParam()) {
-            introspectionUriBuilder.append('?').append(configuration.getTokenQueryParamName()).append('=').append(accessToken);
+            uriBuilder.append('?').append(configuration.getTokenQueryParamName()).append('=').append(accessToken);
         }
 
-        String introspectionEndpointURI = introspectionUriBuilder.toString();
-        logger.debug(
-            "Introspect access token by requesting {} [{}]",
-            introspectionEndpointURI,
-            configuration.getIntrospectionEndpointMethod()
-        );
+        String endpointURI = uriBuilder.toString();
+        logger.debug("Introspect access token by requesting {} [{}]", endpointURI, configuration.getIntrospectionEndpointMethod());
 
         final HttpMethod httpMethod = HttpMethod.valueOf(configuration.getIntrospectionEndpointMethod().toUpperCase());
 
         final RequestOptions reqOptions = new RequestOptions()
             .setMethod(httpMethod)
-            .setAbsoluteURI(introspectionEndpointURI)
+            .setAbsoluteURI(endpointURI)
             .setTimeout(30000L)
-            .putHeader(HttpHeaders.USER_AGENT, userAgent)
+            .putHeader(HttpHeaderNames.USER_AGENT, userAgent)
             .putHeader("X-Gravitee-Request-Id", UUID.toString(UUID.random()));
 
         if (configuration().isUseClientAuthorizationHeader()) {
@@ -207,7 +226,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         }
 
         // Set `Accept` header to ask for application/json content
-        reqOptions.putHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON);
+        reqOptions.putHeader(HttpHeaderNames.ACCEPT, MediaType.APPLICATION_JSON);
 
         if (configuration.isTokenIsSuppliedByHttpHeader()) {
             reqOptions.putHeader(configuration.getTokenHeaderName(), accessToken);
@@ -215,95 +234,69 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         httpClient
             .request(reqOptions)
-            .onFailure(
-                new io.vertx.core.Handler<Throwable>() {
-                    @Override
-                    public void handle(Throwable event) {
-                        logger.error("An error occurs while checking OAuth2 token", event);
-                        responseHandler.handle(new OAuth2Response(event));
-                    }
-                }
-            )
-            .onSuccess(
-                new io.vertx.core.Handler<HttpClientRequest>() {
-                    @Override
-                    public void handle(HttpClientRequest request) {
-                        request
-                            .response(
-                                new io.vertx.core.Handler<AsyncResult<HttpClientResponse>>() {
-                                    @Override
-                                    public void handle(AsyncResult<HttpClientResponse> asyncResponse) {
-                                        if (asyncResponse.failed()) {
-                                            logger.error("An error occurs while checking OAuth2 token", asyncResponse.cause());
-                                            responseHandler.handle(new OAuth2Response(asyncResponse.cause()));
-                                        } else {
-                                            final HttpClientResponse response = asyncResponse.result();
-                                            response.bodyHandler(buffer -> {
-                                                if (response.statusCode() == HttpStatusCode.OK_200) {
-                                                    // According to RFC 7662 : Note that a properly formed and authorized query for an inactive or
-                                                    // otherwise invalid token (or a token the protected resource is not
-                                                    // allowed to know about) is not considered an error response by this
-                                                    // specification.  In these cases, the authorization server MUST instead
-                                                    // respond with an introspection response with the "active" field set to
-                                                    // "false" as described in Section 2.2.
-                                                    String content = buffer.toString();
-
-                                                    try {
-                                                        JsonNode introspectNode = MAPPER.readTree(content);
-                                                        JsonNode activeNode = introspectNode.get("active");
-                                                        if (activeNode != null) {
-                                                            boolean isActive = activeNode.asBoolean();
-                                                            responseHandler.handle(new OAuth2Response(isActive, content));
-                                                        } else {
-                                                            responseHandler.handle(new OAuth2Response(true, content));
-                                                        }
-                                                    } catch (IOException e) {
-                                                        logger.error("Unable to validate introspection endpoint payload: {}", content, e);
-                                                        responseHandler.handle(new OAuth2Response(e));
-                                                    }
-                                                } else {
-                                                    logger.error(
-                                                        "An error occurs while checking OAuth2 token. Request ends with status {}: {}",
-                                                        response.statusCode(),
-                                                        buffer.toString()
-                                                    );
-                                                    responseHandler.handle(
-                                                        new OAuth2Response(
-                                                            new OAuth2ResourceException("An error occurs while checking OAuth2 token")
-                                                        )
-                                                    );
-                                                }
-                                            });
-                                        }
-                                    }
-                                }
-                            )
-                            .exceptionHandler(
-                                new io.vertx.core.Handler<Throwable>() {
-                                    @Override
-                                    public void handle(Throwable event) {
-                                        logger.error("An error occurs while checking OAuth2 token", event);
-                                        responseHandler.handle(new OAuth2Response(event));
-                                    }
-                                }
-                            );
-
-                        if (httpMethod == HttpMethod.POST && configuration.isTokenIsSuppliedByFormUrlEncoded()) {
-                            request.headers().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED);
-                            request.end(configuration.getTokenFormUrlEncodedName() + '=' + accessToken);
+            .onFailure(event -> {
+                logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, event);
+                responseHandler.handle(new OAuth2Response(event));
+            })
+            .onSuccess(request -> {
+                request
+                    .response(asyncResponse -> {
+                        if (asyncResponse.failed()) {
+                            logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, asyncResponse.cause());
+                            responseHandler.handle(new OAuth2Response(asyncResponse.cause()));
                         } else {
-                            request.end();
+                            final HttpClientResponse response = asyncResponse.result();
+                            response.bodyHandler(buffer -> {
+                                if (response.statusCode() == HttpStatusCode.OK_200) {
+                                    // According to RFC 7662 : Note that a properly formed and authorized query for an inactive or
+                                    // otherwise invalid token (or a token the protected resource is not
+                                    // allowed to know about) is not considered an error response by this
+                                    // specification.  In these cases, the authorization server MUST instead
+                                    // respond with an introspection response with the "active" field set to
+                                    // "false" as described in Section 2.2.
+                                    String content = buffer.toString();
+
+                                    try {
+                                        JsonNode introspectNode = MAPPER.readTree(content);
+                                        JsonNode activeNode = introspectNode.get("active");
+                                        if (activeNode != null) {
+                                            boolean isActive = activeNode.asBoolean();
+                                            responseHandler.handle(new OAuth2Response(isActive, content));
+                                        } else {
+                                            responseHandler.handle(new OAuth2Response(true, content));
+                                        }
+                                    } catch (IOException e) {
+                                        logger.error("Unable to validate introspection endpoint payload: {}", content, e);
+                                        responseHandler.handle(new OAuth2Response(e));
+                                    }
+                                } else {
+                                    logger.error(
+                                        "An error occurs while checking OAuth2 token. Request ends with status {}: {}",
+                                        response.statusCode(),
+                                        buffer
+                                    );
+                                    responseHandler.handle(new OAuth2Response(new OAuth2ResourceException(ERROR_CHECKING_OAUTH_2_TOKEN)));
+                                }
+                            });
                         }
-                    }
+                    })
+                    .exceptionHandler(event -> {
+                        logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, event);
+                        responseHandler.handle(new OAuth2Response(event));
+                    });
+
+                if (httpMethod == HttpMethod.POST && configuration.isTokenIsSuppliedByFormUrlEncoded()) {
+                    request.headers().add(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED);
+                    request.end(configuration.getTokenFormUrlEncodedName() + '=' + accessToken);
+                } else {
+                    request.end();
                 }
-            );
+            });
     }
 
     @Override
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {
         HttpClient httpClient = httpClients.computeIfAbsent(Thread.currentThread(), context -> vertx.createHttpClient(httpClientOptions));
-
-        OAuth2ResourceConfiguration configuration = configuration();
 
         HttpMethod httpMethod = HttpMethod.valueOf(configuration.getUserInfoEndpointMethod().toUpperCase());
 
@@ -313,74 +306,45 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             .setMethod(httpMethod)
             .setAbsoluteURI(userInfoEndpointURI)
             .setTimeout(30000L)
-            .putHeader(HttpHeaders.USER_AGENT, userAgent)
+            .putHeader(HttpHeaderNames.USER_AGENT, userAgent)
             .putHeader("X-Gravitee-Request-Id", UUID.toString(UUID.random()))
-            .putHeader(HttpHeaders.AUTHORIZATION, AUTHORIZATION_HEADER_BEARER_SCHEME + accessToken);
+            .putHeader(HttpHeaderNames.AUTHORIZATION, AUTHORIZATION_HEADER_BEARER_SCHEME + accessToken);
 
         httpClient
             .request(reqOptions)
-            .onFailure(
-                new io.vertx.core.Handler<Throwable>() {
-                    @Override
-                    public void handle(Throwable event) {
-                        logger.error("An error occurs while getting userinfo from access token", event);
-                        responseHandler.handle(new UserInfoResponse(event));
-                    }
-                }
-            )
-            .onSuccess(
-                new io.vertx.core.Handler<HttpClientRequest>() {
-                    @Override
-                    public void handle(HttpClientRequest request) {
-                        request
-                            .response(
-                                new io.vertx.core.Handler<AsyncResult<HttpClientResponse>>() {
-                                    @Override
-                                    public void handle(AsyncResult<HttpClientResponse> asyncResponse) {
-                                        if (asyncResponse.failed()) {
-                                            logger.error("An error occurs while getting userinfo from access token", asyncResponse.cause());
-                                            responseHandler.handle(new UserInfoResponse(asyncResponse.cause()));
-                                        } else {
-                                            final HttpClientResponse response = asyncResponse.result();
-                                            response.bodyHandler(buffer -> {
-                                                logger.debug(
-                                                    "Userinfo endpoint returns a response with a {} status code",
-                                                    response.statusCode()
-                                                );
+            .onFailure(event -> {
+                logger.error(ERROR_GETTING_USERINFO, event);
+                responseHandler.handle(new UserInfoResponse(event));
+            })
+            .onSuccess(request ->
+                request
+                    .response(asyncResponse -> {
+                        if (asyncResponse.failed()) {
+                            logger.error(ERROR_GETTING_USERINFO, asyncResponse.cause());
+                            responseHandler.handle(new UserInfoResponse(asyncResponse.cause()));
+                        } else {
+                            final HttpClientResponse response = asyncResponse.result();
+                            response.bodyHandler(buffer -> {
+                                logger.debug("Userinfo endpoint returns a response with a {} status code", response.statusCode());
 
-                                                if (response.statusCode() == HttpStatusCode.OK_200) {
-                                                    responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
-                                                } else {
-                                                    logger.error(
-                                                        "An error occurs while getting userinfo from access token. Request ends with status {}: {}",
-                                                        response.statusCode(),
-                                                        buffer.toString()
-                                                    );
-                                                    responseHandler.handle(
-                                                        new UserInfoResponse(
-                                                            new OAuth2ResourceException(
-                                                                "An error occurs while getting userinfo from access token"
-                                                            )
-                                                        )
-                                                    );
-                                                }
-                                            });
-                                        }
-                                    }
+                                if (response.statusCode() == HttpStatusCode.OK_200) {
+                                    responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
+                                } else {
+                                    logger.error(
+                                        "An error occurs while getting userinfo from access token. Request ends with status {}: {}",
+                                        response.statusCode(),
+                                        buffer
+                                    );
+                                    responseHandler.handle(new UserInfoResponse(new OAuth2ResourceException(ERROR_GETTING_USERINFO)));
                                 }
-                            )
-                            .exceptionHandler(
-                                new io.vertx.core.Handler<Throwable>() {
-                                    @Override
-                                    public void handle(Throwable event) {
-                                        logger.error("An error occurs while getting userinfo from access token", event);
-                                        responseHandler.handle(new UserInfoResponse(event));
-                                    }
-                                }
-                            )
-                            .end();
-                    }
-                }
+                            });
+                        }
+                    })
+                    .exceptionHandler(event -> {
+                        logger.error(ERROR_GETTING_USERINFO, event);
+                        responseHandler.handle(new UserInfoResponse(event));
+                    })
+                    .end()
             );
     }
 
