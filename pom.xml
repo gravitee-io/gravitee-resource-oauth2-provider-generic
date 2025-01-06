@@ -40,7 +40,7 @@
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-gateway-api.version>3.9.0</gravitee-gateway-api.version>
         <gravitee-resource-oauth2-provider-api.version>1.4.0</gravitee-resource-oauth2-provider-api.version>
-        <gravitee-node.version>6.8.0</gravitee-node.version>
+        <gravitee-node.version>7.0.2</gravitee-node.version>
 
         <wiremock.version>3.10.0</wiremock.version>
 
