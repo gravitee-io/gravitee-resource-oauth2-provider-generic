@@ -1,3 +1,15 @@
+# [4.0.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/3.1.0-alpha.1...4.0.0-alpha.1) (2025-01-07)
+
+
+### chore
+
+* rework pom management ([8c06b7c](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/8c06b7c154ae9d10c7ca32e27edfe68305506b4d))
+
+
+### BREAKING CHANGES
+
+* requires APIM 4.6.x that provides secret-api 1.0.0 and gravitee-node 7.0.0
+
 # [3.1.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/3.0.0...3.1.0-alpha.1) (2025-01-07)
 
 
