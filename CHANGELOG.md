@@ -1,3 +1,10 @@
+# [3.1.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/3.0.0...3.1.0-alpha.1) (2025-01-07)
+
+
+### Features
+
+* add EL support via annotation processor and secrets ([eabed38](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/eabed382515c8aacda9cd116b6d93ed07269e0c0))
+
 # [3.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/2.1.0...3.0.0) (2024-12-16)
 
 
