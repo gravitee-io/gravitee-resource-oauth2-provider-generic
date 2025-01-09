@@ -85,14 +85,19 @@ class OAuth2GenericResourceConfigurationTest {
     void should_eval_config() throws Exception {
         OAuth2ResourceConfiguration config = new OAuth2ResourceConfiguration();
         config.setAuthorizationServerUrl("http://localhost:8080/auth");
+        config.setClientId(asSecretEL("that is an ID"));
         config.setClientSecret(asSecretEL("that is a secret"));
         OAuth2GenericResource oAuth2GenericResource = underTest(config);
         oAuth2GenericResource.start();
 
+        assertThat(oAuth2GenericResource.configuration().getClientId()).isEqualTo("that is an ID");
         assertThat(oAuth2GenericResource.configuration().getClientSecret()).isEqualTo("that is a secret");
 
         assertThat(recordedSecretFieldAccessControls)
-            .containsExactlyInAnyOrder(new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientSecret"));
+            .containsExactlyInAnyOrder(
+                new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientSecret"),
+                new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientId")
+            );
     }
 
     @Test

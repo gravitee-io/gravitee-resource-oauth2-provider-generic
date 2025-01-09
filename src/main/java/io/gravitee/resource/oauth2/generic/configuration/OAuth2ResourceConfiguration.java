@@ -39,6 +39,8 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     private String userInfoEndpoint;
     private String userInfoEndpointMethod;
+
+    @Secret
     private String clientId;
 
     @Secret
