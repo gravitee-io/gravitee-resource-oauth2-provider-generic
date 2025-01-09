@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.0...4.0.1) (2025-01-09)
+
+
+### Bug Fixes
+
+* add clientId as a secret value, fix README ([4dfdbd7](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/4dfdbd75265028a3525dd2e2b9a866fbf638fd9d))
+
 # [4.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/3.0.0...4.0.0) (2025-01-09)
 
 
