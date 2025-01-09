@@ -1,3 +1,10 @@
+# [4.0.0-alpha.2](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.0-alpha.1...4.0.0-alpha.2) (2025-01-09)
+
+
+### Bug Fixes
+
+* adapt ci config to build preleases ([afcb358](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/afcb3580025b819f8a458805490371b5548d4eb7))
+
 # [4.0.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/3.1.0-alpha.1...4.0.0-alpha.1) (2025-01-07)
 
 
