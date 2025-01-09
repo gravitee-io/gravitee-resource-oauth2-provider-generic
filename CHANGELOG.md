@@ -1,3 +1,26 @@
+# [4.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/3.0.0...4.0.0) (2025-01-09)
+
+
+### Bug Fixes
+
+* adapt ci config to build preleases ([c3c419b](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/c3c419b64b57273a274a17bb7f900ba63feeb5ec))
+* retry ci ([0b6f8bb](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/0b6f8bbf0f9f79c855b8db0bae3f5e0ddaf15351))
+
+
+### chore
+
+* rework pom management ([04d29fe](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/04d29fec3632af0da53ebeafb86f9093a395eeec))
+
+
+### Features
+
+* add EL support via annotation processor and secrets ([8e27b6a](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/8e27b6abda5cb9c43e1c505e1823532a3967e733))
+
+
+### BREAKING CHANGES
+
+* requires APIM 4.6.x that provides secret-api 1.0.0 and gravitee-node 7.0.0
+
 # [4.0.0-alpha.2](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.0-alpha.1...4.0.0-alpha.2) (2025-01-09)
 
 
