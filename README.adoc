@@ -21,8 +21,9 @@ configuration about the way to apply token introspection.
 |===
 |Plugin version | APIM version
 
-|3.0 and upper                  | 4.4.x to latest
-|2.0 and upper                  | 3.18.x to 4.3.X
+|4.0 and upper                  | 4.6.x to latest
+|3.0 and upper                  | 4.4.x to 4.5.x
+|2.0 and upper                  | 3.18.x to 4.3.x
 |1.16.x and upper               | 3.10.x to 3.17.x
 |Up to 1.15.x                   | Up to 3.9.x
 |===
@@ -32,12 +33,14 @@ configuration about the way to apply token introspection.
 You can configure the resource with the following options :
 
 |===
-|Property |Required |Description |Type |Default
+|Property |Required |Description |Type |Default | Support EL | Support Secret
 
 .^|introspectionEndpoint
 ^.^|X
 |The URL which is used by the resource to introspect an incoming access token.
 ^.^|string
+^.^|-
+^.^|X
 ^.^|-
 
 .^|useSystemProxy
@@ -45,65 +48,87 @@ You can configure the resource with the following options :
 |TUse system proxy.
 ^.^|boolean
 ^.^|false
+^.^|X
+^.^|-
 
 .^|introspectionEndpointMethod
 ^.^|X
 |HTTP method used to introspect the access token.
 ^.^|HTTP Method
 ^.^|GET
+^.^|X
+^.^|-
 
 .^|clientId
 ^.^|X
 |The client identifier.
 ^.^|string
 ^.^|-
+^.^|X
+^.^|X
 
 .^|clientSecret
 ^.^|X
 |The client secret.
 ^.^|string
 ^.^|-
+^.^|X
+^.^|X
 
 .^|useClientAuthorizationHeader
 ^.^|-
 |To prevent token scanning attacks, the endpoint MUST also require some form of authorization to access this endpoint. In this case we are using an HTTP header for client authentication.
 ^.^|boolean
 ^.^|true
+^.^|X
+^.^|-
 
 .^|clientAuthorizationHeaderName
 ^.^|-
 |Authorization header.
 ^.^|string
 ^.^|Authorization
+^.^|X
+^.^|-
 
 .^|clientAuthorizationHeaderScheme
 ^.^|-
 |Authorization scheme.
 ^.^|string
 ^.^|Basic
+^.^|X
+^.^|-
 
 .^|tokenIsSuppliedByQueryParam
 ^.^|-
 |Access token is passed to the introspection endpoint using a query parameter.
 ^.^|boolean
 ^.^|true
+^.^|X
+^.^|-
 
 .^|tokenQueryParamName
 ^.^|-
 |Query parameter used to supply access token.
 ^.^|string
 ^.^|token
+^.^|X
+^.^|-
 
 .^|tokenIsSuppliedByHttpHeader
 ^.^|-
 |Access token is passed to the introspection endpoint using an HTTP header.
 ^.^|boolean
 ^.^|false
+^.^|X
+^.^|-
 
 .^|tokenHeaderName
 ^.^|-
 |HTTP header used to supply access token.
 ^.^|string
+^.^|-
+^.^|X
 ^.^|-
 
 |===
@@ -125,5 +150,18 @@ You can configure the resource with the following options :
         "tokenQueryParamName": "token",
         "useClientAuthorizationHeader": true
     }
+}
+----
+
+
+[source, json]
+.Extract with a secret and EL
+----
+{
+  "configuration": {
+        "introspectionEndpoint": "https://{#dictionary['oauth']['host']/oauth/check_token",
+        "clientId": "my-client",
+        "clientSecret": "f2ddb55e-30b5-4a45-9db5-5e30b52a4574",
+  }
 }
 ----
