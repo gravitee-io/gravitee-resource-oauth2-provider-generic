@@ -1,3 +1,10 @@
+## [4.0.2](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.1...4.0.2) (2025-01-17)
+
+
+### Bug Fixes
+
+* udpate README and schema form for EL and secrets support ([1f45f1b](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/1f45f1beb044e20485e4790ac3bf014fa918db67))
+
 ## [4.0.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.0...4.0.1) (2025-01-09)
 
 
