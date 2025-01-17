@@ -4,13 +4,13 @@
     "properties": {
         "authorizationServerUrl": {
             "title": "Authorization server URL",
-            "description": "URL of the authorization server",
+            "description": "URL of the authorization server. Supports EL",
             "type": "string",
             "default": "https://authorization_server"
         },
         "introspectionEndpoint": {
             "title": "Token introspection endpoint",
-            "description": "Path which is used to introspect an incoming access token (must start with '/').",
+            "description": "Path which is used to introspect an incoming access token (must start with '/'). Supports EL",
             "type": "string",
             "default": "/oauth/check_token"
         },
@@ -35,7 +35,7 @@
         },
         "userInfoEndpoint": {
             "title": "Userinfo endpoint",
-            "description": "Path which is used to get userinfo using incoming access token (must start with '/').",
+            "description": "Path which is used to get userinfo using incoming access token (must start with '/'). Supports EL",
             "type": "string",
             "default": "/userinfo"
         },
@@ -48,12 +48,12 @@
         },
         "clientId": {
             "title": "Client Id",
-            "description": "The client identifier used for token introspection.",
+            "description": "The client identifier used for token introspection. (Supports EL and secrets)",
             "type": "string"
         },
         "clientSecret": {
             "title": "Client Secret",
-            "description": "The client secret used for token introspection.",
+            "description": "The client secret used for token introspection. (Supports EL and secrets)",
             "type": "string",
             "format": "password"
         },
@@ -65,12 +65,12 @@
         },
         "clientAuthorizationHeaderName": {
             "type": "string",
-            "title": "Authorization header.",
+            "title": "Authorization header. Supports EL",
             "default": "Authorization"
         },
         "clientAuthorizationHeaderScheme": {
             "type": "string",
-            "title": "Authorization scheme.",
+            "title": "Authorization scheme. Supports EL",
             "default": "Basic"
         },
         "tokenIsSuppliedByQueryParam": {
@@ -81,7 +81,7 @@
         },
         "tokenQueryParamName": {
             "title": "Token query param name",
-            "description": "Query parameter used to supply access token.",
+            "description": "Query parameter used to supply access token. Supports EL",
             "type": "string",
             "default": "token"
         },
@@ -93,7 +93,7 @@
         },
         "tokenHeaderName": {
             "title": "HTTP header name",
-            "description": "HTTP header used to supply access token.",
+            "description": "HTTP header used to supply access token. Supports EL",
             "type": "string"
         },
         "tokenIsSuppliedByFormUrlEncoded": {
@@ -104,13 +104,13 @@
         },
         "tokenFormUrlEncodedName": {
             "title": "Form param name",
-            "description": "Name of the form param in case of application/x-www-form-urlencoded.",
+            "description": "Name of the form param in case of application/x-www-form-urlencoded. Supports EL",
             "type": "string",
             "default": "token"
         },
         "userClaim": {
             "title": "User claim",
-            "description": "User claim field used to store end user on log analytics",
+            "description": "User claim field used to store end user on log analytics. Supports EL",
             "type": "string",
             "default": "sub"
         }

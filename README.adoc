@@ -48,7 +48,7 @@ You can configure the resource with the following options :
 |TUse system proxy.
 ^.^|boolean
 ^.^|false
-^.^|X
+^.^|-
 ^.^|-
 
 .^|introspectionEndpointMethod
@@ -56,7 +56,7 @@ You can configure the resource with the following options :
 |HTTP method used to introspect the access token.
 ^.^|HTTP Method
 ^.^|GET
-^.^|X
+^.^|-
 ^.^|-
 
 .^|clientId
@@ -80,7 +80,7 @@ You can configure the resource with the following options :
 |To prevent token scanning attacks, the endpoint MUST also require some form of authorization to access this endpoint. In this case we are using an HTTP header for client authentication.
 ^.^|boolean
 ^.^|true
-^.^|X
+^.^|-
 ^.^|-
 
 .^|clientAuthorizationHeaderName
@@ -104,7 +104,7 @@ You can configure the resource with the following options :
 |Access token is passed to the introspection endpoint using a query parameter.
 ^.^|boolean
 ^.^|true
-^.^|X
+^.^|-
 ^.^|-
 
 .^|tokenQueryParamName
@@ -112,7 +112,7 @@ You can configure the resource with the following options :
 |Query parameter used to supply access token.
 ^.^|string
 ^.^|token
-^.^|X
+^.^|-
 ^.^|-
 
 .^|tokenIsSuppliedByHttpHeader
@@ -120,7 +120,7 @@ You can configure the resource with the following options :
 |Access token is passed to the introspection endpoint using an HTTP header.
 ^.^|boolean
 ^.^|false
-^.^|X
+^.^|-
 ^.^|-
 
 .^|tokenHeaderName
@@ -161,7 +161,7 @@ You can configure the resource with the following options :
   "configuration": {
         "introspectionEndpoint": "https://{#dictionary['oauth']['host']/oauth/check_token",
         "clientId": "my-client",
-        "clientSecret": "f2ddb55e-30b5-4a45-9db5-5e30b52a4574",
+        "clientSecret": "f2ddb55e-30b5-4a45-9db5-5e30b52a4574"
   }
 }
 ----
