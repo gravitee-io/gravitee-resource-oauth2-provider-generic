@@ -1,3 +1,10 @@
+## [4.0.3](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.2...4.0.3) (2025-06-26)
+
+
+### Bug Fixes
+
+* **deps:** bump gravitee-apim-bom to 4.6.14 ([8b1aff5](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/8b1aff5f0066263002b8b73a355e6315ee787613))
+
 ## [4.0.2](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.1...4.0.2) (2025-01-17)
 
 
