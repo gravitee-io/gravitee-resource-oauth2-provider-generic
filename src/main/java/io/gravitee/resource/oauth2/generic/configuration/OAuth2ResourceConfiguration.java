@@ -15,6 +15,7 @@
  */
 package io.gravitee.resource.oauth2.generic.configuration;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.gravitee.plugin.annotation.ConfigurationEvaluator;
 import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.secrets.api.annotation.Secret;
@@ -57,4 +58,7 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
     private String tokenFormUrlEncodedName;
     private String scopeSeparator;
     private String userClaim;
+
+    @JsonProperty("http")
+    private HttpClientOptions httpClientOptions = new HttpClientOptions();
 }
