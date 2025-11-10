@@ -147,6 +147,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             new HttpClientOptions()
                 .setDefaultPort(authorizationServerPort)
                 .setDefaultHost(authorizationServerUrl.getHost())
+                .setMaxPoolSize(configuration().getHttpClientOptions().getMaxConcurrentConnections())
                 .setIdleTimeout(60)
                 .setConnectTimeout(10000);
 
