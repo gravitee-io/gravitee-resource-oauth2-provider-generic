@@ -41,6 +41,7 @@ import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 import lombok.Setter;
@@ -143,13 +144,20 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             authorizationServerPort = 80;
         }
 
+        // Safely convert timeout values from long to int, preventing overflow
+        int idleTimeout = (int) Math.min(Integer.MAX_VALUE, configuration().getHttpClientOptions().getIdleTimeout());
+        int connectTimeout = (int) Math.min(Integer.MAX_VALUE, configuration().getHttpClientOptions().getConnectTimeout());
+        int keepAliveTimeout = (int) Math.min(Integer.MAX_VALUE, configuration().getHttpClientOptions().getKeepAliveTimeout());
+
         httpClientOptions =
             new HttpClientOptions()
                 .setDefaultPort(authorizationServerPort)
                 .setDefaultHost(authorizationServerUrl.getHost())
                 .setMaxPoolSize(configuration().getHttpClientOptions().getMaxConcurrentConnections())
-                .setIdleTimeout(60)
-                .setConnectTimeout(10000);
+                .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
+                .setIdleTimeout(idleTimeout)
+                .setConnectTimeout(connectTimeout)
+                .setKeepAliveTimeout(keepAliveTimeout);
 
         // Use SSL connection if authorization schema is set to HTTPS
         if (HTTPS_SCHEME.equalsIgnoreCase(authorizationServerUrl.getScheme())) {
@@ -206,7 +214,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         final RequestOptions reqOptions = new RequestOptions()
             .setMethod(httpMethod)
             .setAbsoluteURI(endpointURI)
-            .setTimeout(30000L)
             .putHeader(HttpHeaderNames.USER_AGENT, userAgent)
             .putHeader("X-Gravitee-Request-Id", UUID.toString(UUID.random()));
 
@@ -306,7 +313,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         final RequestOptions reqOptions = new RequestOptions()
             .setMethod(httpMethod)
             .setAbsoluteURI(userInfoEndpointURI)
-            .setTimeout(30000L)
             .putHeader(HttpHeaderNames.USER_AGENT, userAgent)
             .putHeader("X-Gravitee-Request-Id", UUID.toString(UUID.random()))
             .putHeader(HttpHeaderNames.AUTHORIZATION, AUTHORIZATION_HEADER_BEARER_SCHEME + accessToken);

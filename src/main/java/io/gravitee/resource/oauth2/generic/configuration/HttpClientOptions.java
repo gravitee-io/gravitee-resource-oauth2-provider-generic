@@ -15,6 +15,9 @@
  */
 package io.gravitee.resource.oauth2.generic.configuration;
 
+import static io.gravitee.node.vertx.client.http.VertxHttpClientOptions.DEFAULT_CONNECT_TIMEOUT;
+import static io.gravitee.node.vertx.client.http.VertxHttpClientOptions.DEFAULT_IDLE_TIMEOUT;
+import static io.gravitee.node.vertx.client.http.VertxHttpClientOptions.DEFAULT_KEEP_ALIVE_TIMEOUT;
 import static io.gravitee.node.vertx.client.http.VertxHttpClientOptions.DEFAULT_MAX_CONCURRENT_CONNECTIONS;
 
 import lombok.AllArgsConstructor;
@@ -36,4 +39,13 @@ public class HttpClientOptions {
 
     @Builder.Default
     private int maxConcurrentConnections = DEFAULT_MAX_CONCURRENT_CONNECTIONS;
+
+    @Builder.Default
+    private long idleTimeout = DEFAULT_IDLE_TIMEOUT;
+
+    @Builder.Default
+    private long connectTimeout = DEFAULT_CONNECT_TIMEOUT;
+
+    @Builder.Default
+    private long keepAliveTimeout = DEFAULT_KEEP_ALIVE_TIMEOUT;
 }
