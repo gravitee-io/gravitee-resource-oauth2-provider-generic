@@ -1,3 +1,10 @@
+# [4.2.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.1.0...4.2.0) (2025-11-24)
+
+
+### Features
+
+* make OAuth2 resource HTTP client timeouts configurable ([900a647](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/900a647bb95aef5d251537be89326e0cbc9ecf45))
+
 # [4.1.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.0.3...4.1.0) (2025-11-19)
 
 
