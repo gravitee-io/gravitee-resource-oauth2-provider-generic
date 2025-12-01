@@ -33,6 +33,7 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     private String authorizationServerUrl;
     private String introspectionEndpoint;
+    private String authorizationServerMetadataEndpoint;
     private boolean useSystemProxy;
 
     @Pattern(regexp = "GET|POST")

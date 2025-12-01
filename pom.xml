@@ -24,7 +24,7 @@
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
-        <version>22.5.1</version>
+        <version>22.6.0</version>
     </parent>
 
     <groupId>io.gravitee.resource</groupId>
@@ -151,6 +151,11 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

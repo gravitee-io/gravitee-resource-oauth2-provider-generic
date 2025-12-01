@@ -17,6 +17,7 @@ package io.gravitee.resource.oauth2.generic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.lenient;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -27,6 +28,7 @@ import io.gravitee.el.TemplateEngine;
 import io.gravitee.el.spel.context.SecuredResolver;
 import io.gravitee.node.api.Node;
 import io.gravitee.resource.api.AbstractConfigurableResource;
+import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.Vertx;
@@ -36,6 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
@@ -188,13 +192,10 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.introspect(
-            "xxxx-xxxx-xxxx-xxxx",
-            oAuth2Response -> {
-                assertThat(oAuth2Response.isSuccess()).isTrue();
-                check.set(true);
-            }
-        );
+        resource.introspect("xxxx-xxxx-xxxx-xxxx", oAuth2Response -> {
+            assertThat(oAuth2Response.isSuccess()).isTrue();
+            check.set(true);
+        });
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
@@ -210,14 +211,11 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.introspect(
-            "xxxx-xxxx-xxxx-xxxx",
-            oAuth2Response -> {
-                assertThat(oAuth2Response.isSuccess()).isFalse();
-                assertThat(oAuth2Response.getPayload()).isEqualTo("An error occurs while checking OAuth2 token");
-                check.set(true);
-            }
-        );
+        resource.introspect("xxxx-xxxx-xxxx-xxxx", oAuth2Response -> {
+            assertThat(oAuth2Response.isSuccess()).isFalse();
+            assertThat(oAuth2Response.getPayload()).isEqualTo("An error occurs while checking OAuth2 token");
+            check.set(true);
+        });
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
@@ -233,13 +231,10 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.introspect(
-            "xxxx-xxxx-xxxx-xxxx",
-            oAuth2Response -> {
-                assertThat(oAuth2Response.isSuccess()).isFalse();
-                check.set(true);
-            }
-        );
+        resource.introspect("xxxx-xxxx-xxxx-xxxx", oAuth2Response -> {
+            assertThat(oAuth2Response.isSuccess()).isFalse();
+            check.set(true);
+        });
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
@@ -247,10 +242,9 @@ class OAuth2GenericResourceTest {
     @Test
     void should_get_user_info(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(
-            get(urlEqualTo("/userinfo"))
-                .willReturn(
-                    aResponse().withStatus(200).withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\", \"given_name\": \"Jane\"}")
-                )
+            get(urlEqualTo("/userinfo")).willReturn(
+                aResponse().withStatus(200).withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\", \"given_name\": \"Jane\"}")
+            )
         );
 
         AtomicBoolean check = new AtomicBoolean();
@@ -261,13 +255,10 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.userInfo(
-            "xxxx-xxxx-xxxx-xxxx",
-            userInfoResponse -> {
-                assertThat(userInfoResponse.isSuccess()).isTrue();
-                check.set(true);
-            }
-        );
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            assertThat(userInfoResponse.isSuccess()).isTrue();
+            check.set(true);
+        });
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
@@ -275,10 +266,9 @@ class OAuth2GenericResourceTest {
     @Test
     void should_post_user_info(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         stubFor(
-            post(urlEqualTo("/userinfo"))
-                .willReturn(
-                    aResponse().withStatus(200).withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\", \"given_name\": \"Jane\"}")
-                )
+            post(urlEqualTo("/userinfo")).willReturn(
+                aResponse().withStatus(200).withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\", \"given_name\": \"Jane\"}")
+            )
         );
 
         AtomicBoolean check = new AtomicBoolean();
@@ -289,13 +279,10 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.userInfo(
-            "xxxx-xxxx-xxxx-xxxx",
-            userInfoResponse -> {
-                assertThat(userInfoResponse.isSuccess()).isTrue();
-                check.set(true);
-            }
-        );
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            assertThat(userInfoResponse.isSuccess()).isTrue();
+            check.set(true);
+        });
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
@@ -312,14 +299,11 @@ class OAuth2GenericResourceTest {
 
         resource.doStart();
 
-        resource.userInfo(
-            "xxxx-xxxx-xxxx-xxxx",
-            userInfoResponse -> {
-                assertThat(userInfoResponse.isSuccess()).isFalse();
-                assertThat(userInfoResponse.getPayload()).isEqualTo("An error occurs while getting userinfo from access token");
-                check.set(true);
-            }
-        );
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            assertThat(userInfoResponse.isSuccess()).isFalse();
+            assertThat(userInfoResponse.getPayload()).isEqualTo("An error occurs while getting userinfo from access token");
+            check.set(true);
+        });
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
     }
@@ -327,5 +311,22 @@ class OAuth2GenericResourceTest {
     @Test
     void should_get_default_user_claim() {
         assertThat(resource.getUserClaim()).isEqualTo("sub");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "https://some.keycloak.com", "https://some.keycloak.com/" })
+    public void testGetProtectedResourceMetadata(String authorizationServerUrl) throws NoSuchFieldException, IllegalAccessException {
+        OAuth2GenericResource resource = new OAuth2GenericResource();
+        OAuth2ResourceConfiguration configuration = new OAuth2ResourceConfiguration();
+        configuration.setAuthorizationServerMetadataEndpoint("/realms/myrealm/.well-known/oauth-authorization-server");
+        configuration.setAuthorizationServerUrl(authorizationServerUrl);
+        resource.setConfiguration(configuration);
+        OAuth2ResourceMetadata resourceMetadata = resource.getProtectedResourceMetadata("https://backend.com");
+        assertAll(
+            () -> assertThat(resourceMetadata.protectedResourceUri()).isEqualTo("https://backend.com"),
+            () -> assertThat(resourceMetadata.authorizationServers().get(0)).isEqualTo("https://some.keycloak.com/realms/myrealm"),
+            () -> assertThat(resourceMetadata.authorizationServers().size()).isEqualTo(1),
+            () -> assertThat(resourceMetadata.scopesSupported()).isNull()
+        );
     }
 }

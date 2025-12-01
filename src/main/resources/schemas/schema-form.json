@@ -14,6 +14,12 @@
             "type": "string",
             "default": "/oauth/check_token"
         },
+        "authorizationServerMetadataEndpoint": {
+            "title": "Authorization server metadata endpoint",
+            "description": "Path used to retrieve the authorization server metadata (must end with '/.well-known/oauth-authorization-server'). Supports EL",
+            "type": "string",
+            "default": "/.well-known/oauth-authorization-server"
+        },
         "useSystemProxy": {
             "title": "System proxy",
             "description": "Use system proxy",
@@ -118,7 +124,14 @@
             "$ref": "#/definitions/httpClientOptions"
         }
     },
-    "required": ["authorizationServerUrl", "introspectionEndpoint", "introspectionEndpointMethod", "clientId", "clientSecret"],
+    "required": [
+        "authorizationServerUrl",
+        "introspectionEndpoint",
+        "authorizationServerMetadataEndpoint",
+        "introspectionEndpointMethod",
+        "clientId",
+        "clientSecret"
+    ],
     "definitions": {
         "httpClientOptions": {
             "type": "object",
