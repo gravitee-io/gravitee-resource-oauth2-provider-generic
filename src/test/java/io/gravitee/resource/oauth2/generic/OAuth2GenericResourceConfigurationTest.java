@@ -93,11 +93,10 @@ class OAuth2GenericResourceConfigurationTest {
         assertThat(oAuth2GenericResource.configuration().getClientId()).isEqualTo("that is an ID");
         assertThat(oAuth2GenericResource.configuration().getClientSecret()).isEqualTo("that is a secret");
 
-        assertThat(recordedSecretFieldAccessControls)
-            .containsExactlyInAnyOrder(
-                new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientSecret"),
-                new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientId")
-            );
+        assertThat(recordedSecretFieldAccessControls).containsExactlyInAnyOrder(
+            new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientSecret"),
+            new SecretFieldAccessControl(true, FieldKind.GENERIC, "clientId")
+        );
     }
 
     @Test
@@ -116,8 +115,7 @@ class OAuth2GenericResourceConfigurationTest {
 
     OAuth2GenericResource underTest(OAuth2ResourceConfiguration config) throws IllegalAccessException {
         OAuth2GenericResource redisCacheResource = new OAuth2GenericResource();
-        Optional<Field> configuration = Stream
-            .of(redisCacheResource.getClass().getSuperclass().getSuperclass().getDeclaredFields())
+        Optional<Field> configuration = Stream.of(redisCacheResource.getClass().getSuperclass().getSuperclass().getDeclaredFields())
             .filter(field -> field.getName().equals("configuration") && field.getType().equals(ResourceConfiguration.class))
             .findFirst();
         if (configuration.isPresent()) {
