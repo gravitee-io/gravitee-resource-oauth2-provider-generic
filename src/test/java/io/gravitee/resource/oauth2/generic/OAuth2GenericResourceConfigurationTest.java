@@ -20,12 +20,16 @@ import static org.assertj.core.api.Fail.fail;
 
 import io.gravitee.el.TemplateEngine;
 import io.gravitee.el.spel.context.SecuredResolver;
+import io.gravitee.plugin.configurations.http.HttpClientOptions;
+import io.gravitee.plugin.configurations.http.HttpProxyOptions;
+import io.gravitee.plugin.configurations.ssl.SslOptions;
 import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.gravitee.secrets.api.el.DelegatingEvaluatedSecretsMethods;
 import io.gravitee.secrets.api.el.EvaluatedSecretsMethods;
 import io.gravitee.secrets.api.el.FieldKind;
 import io.gravitee.secrets.api.el.SecretFieldAccessControl;
+import io.vertx.rxjava3.core.Vertx;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +38,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
@@ -79,6 +84,7 @@ class OAuth2GenericResourceConfigurationTest {
         templateEngine.getTemplateContext().setVariable("secrets", new DelegatingEvaluatedSecretsMethods(delegate));
         templateEngine.getTemplateContext().setVariable("host", "acme.com");
         templateEngine.getTemplateContext().setVariable("masterId", "r2d2");
+        Mockito.when(applicationContext.getBean(Vertx.class)).thenReturn(Vertx.vertx());
     }
 
     @Test

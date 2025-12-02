@@ -17,10 +17,15 @@ package io.gravitee.resource.oauth2.generic.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.gravitee.plugin.annotation.ConfigurationEvaluator;
+import io.gravitee.plugin.configurations.http.HttpClientOptions;
+import io.gravitee.plugin.configurations.http.HttpProxyOptions;
+import io.gravitee.plugin.configurations.ssl.SslOptions;
 import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.secrets.api.annotation.Secret;
 import jakarta.validation.constraints.Pattern;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Setter;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -34,6 +39,8 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
     private String authorizationServerUrl;
     private String introspectionEndpoint;
     private String authorizationServerMetadataEndpoint;
+
+    @Setter(AccessLevel.NONE)
     private boolean useSystemProxy;
 
     @Pattern(regexp = "GET|POST")
@@ -62,4 +69,21 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
 
     @JsonProperty("http")
     private HttpClientOptions httpClientOptions = new HttpClientOptions();
+
+    @JsonProperty("proxy")
+    private HttpProxyOptions httpProxyOptions = new HttpProxyOptions();
+
+    @JsonProperty("ssl")
+    private SslOptions sslOptions = new SslOptions();
+
+    public void setUseSystemProxy(boolean useSystemProxy) {
+        this.useSystemProxy = useSystemProxy;
+        // smooth migration: older versions of the plugin didn't have the httpProxyOptions property,
+        // so we simply set the httpProxyOptions.enabled and httpProxyOptions.setUseSystemProxy property
+        // to avoid huge data migration.
+        if (useSystemProxy) {
+            this.httpProxyOptions.setEnabled(true);
+            this.httpProxyOptions.setUseSystemProxy(true);
+        }
+    }
 }
