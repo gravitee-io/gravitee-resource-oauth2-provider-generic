@@ -1,3 +1,10 @@
+# [4.3.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.2.0...4.3.0-alpha.1) (2025-12-04)
+
+
+### Features
+
+* add the OAuth2GenericResource.getProtectedResourceMetadata() method ([11d719d](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/11d719d22dcd3ca038ad5a483b81e469129e0cb7))
+
 # [4.2.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.1.0...4.2.0) (2025-11-24)
 
 
