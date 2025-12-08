@@ -1,3 +1,15 @@
+# [5.0.0-alpha.2](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.1...5.0.0-alpha.2) (2025-12-08)
+
+
+### Features
+
+* use common http client, http proxy and ssl configuration ([76adb0f](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/76adb0fb475da79016631937d7cd7995052331b4))
+
+
+### BREAKING CHANGES
+
+* bump gravitee-parent
+
 # [5.0.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.3.0-alpha.1...5.0.0-alpha.1) (2025-12-04)
 
 
