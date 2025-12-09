@@ -329,7 +329,7 @@ class OAuth2GenericResourceTest {
             () -> assertThat(resourceMetadata.protectedResourceUri()).isEqualTo("https://backend.com"),
             () -> assertThat(resourceMetadata.authorizationServers().get(0)).isEqualTo("https://some.keycloak.com/realms/myrealm"),
             () -> assertThat(resourceMetadata.authorizationServers().size()).isEqualTo(1),
-            () -> assertThat(resourceMetadata.scopesSupported()).isNull()
+            () -> assertThat(resourceMetadata.scopesSupported()).isEmpty()
         );
     }
 }
