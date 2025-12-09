@@ -1,3 +1,10 @@
+# [5.0.0-alpha.4](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.3...5.0.0-alpha.4) (2025-12-09)
+
+
+### Bug Fixes
+
+* keep ssl settings for backward compatibility ([73a7942](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/73a7942d9e72a1ff8ac469a5342441dc40ff3e8c))
+
 # [5.0.0-alpha.3](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.2...5.0.0-alpha.3) (2025-12-09)
 
 
