@@ -29,6 +29,7 @@ import io.gravitee.node.api.utils.NodeUtils;
 import io.gravitee.node.container.spring.SpringEnvironmentConfiguration;
 import io.gravitee.node.vertx.client.http.VertxHttpClientFactory;
 import io.gravitee.node.vertx.proxy.VertxProxyOptionsUtils;
+import io.gravitee.plugin.configurations.ssl.SslOptions;
 import io.gravitee.plugin.mappers.HttpClientOptionsMapper;
 import io.gravitee.plugin.mappers.HttpProxyOptionsMapper;
 import io.gravitee.plugin.mappers.SslOptionsMapper;
@@ -82,8 +83,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     private ApplicationContext applicationContext;
 
     private HttpClient httpClient;
-
-    private HttpClientOptions httpClientOptions;
 
     private String userAgent;
 
