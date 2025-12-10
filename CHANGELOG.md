@@ -4,6 +4,8 @@
 ### Bug Fixes
 
 * keep ssl settings for backward compatibility ([73a7942](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/73a7942d9e72a1ff8ac469a5342441dc40ff3e8c))
+  - This introduces a default SSL setting to prevent breaking existing APIs that relied on `hostnameVerifier: false` and `trustAll: true` (the legacy default setting). The new version does not default to the permissive `trustAll` setting, requiring explicit user configuration. However, legacy configurations will continue to use the less secure version to ensure backward compatibility.
+
 
 # [5.0.0-alpha.3](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.2...5.0.0-alpha.3) (2025-12-09)
 
