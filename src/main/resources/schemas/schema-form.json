@@ -14,11 +14,11 @@
             "type": "string",
             "default": "/oauth/check_token"
         },
-        "useSystemProxy": {
-            "title": "System proxy",
-            "description": "Use system proxy",
-            "type": "boolean",
-            "default": false
+        "authorizationServerMetadataEndpoint": {
+            "title": "Authorization server metadata endpoint",
+            "description": "Path used to retrieve the authorization server metadata (must end with '/.well-known/oauth-authorization-server'). Supports EL",
+            "type": "string",
+            "default": "/.well-known/oauth-authorization-server"
         },
         "introspectionEndpointMethod": {
             "title": "Token introspection method",
@@ -115,53 +115,21 @@
             "default": "sub"
         },
         "http": {
-            "$ref": "#/definitions/httpClientOptions"
+            "$ref": "#/gioExternalDefinitions/httpClientOptions"
+        },
+        "proxy": {
+            "$ref": "#/gioExternalDefinitions/httpProxyOptions"
+        },
+        "ssl": {
+            "$ref": "#/gioExternalDefinitions/sslOptions"
         }
     },
-    "required": ["authorizationServerUrl", "introspectionEndpoint", "introspectionEndpointMethod", "clientId", "clientSecret"],
-    "definitions": {
-        "httpClientOptions": {
-            "type": "object",
-            "javaType": "io.gravitee.resource.oauth2.generic.configuration.HttpClientOptions",
-            "title": "HTTP Client options",
-            "properties": {
-                "maxConcurrentConnections": {
-                    "$ref": "#/definitions/maxConcurrentConnections"
-                },
-                "idleTimeout": {
-                    "$ref": "#/definitions/idleTimeout"
-                },
-                "connectTimeout": {
-                    "$ref": "#/definitions/connectTimeout"
-                },
-                "keepAliveTimeout": {
-                    "$ref": "#/definitions/keepAliveTimeout"
-                }
-            }
-        },
-        "maxConcurrentConnections": {
-            "type": "integer",
-            "title": "Max Concurrent Connections",
-            "description": "Maximum pool size for connections.",
-            "default": 100
-        },
-        "idleTimeout": {
-            "type": "integer",
-            "title": "Idle timeout (ms)",
-            "description": "Maximum time in milliseconds a connection will be opened if no data is received nor sent. Once the timeout has elapsed, the unused connection will be closed, allowing to free the associated resources.",
-            "default": 60000
-        },
-        "connectTimeout": {
-            "type": "integer",
-            "title": "Connect Timeout (ms)",
-            "description": "Maximum time to connect to the backend in milliseconds.",
-            "default": 5000
-        },
-        "keepAliveTimeout": {
-            "type": "integer",
-            "title": "Keep-alive timeout (ms)",
-            "description": "Maximum time a connection will remain unused in the pool in milliseconds. Once the timeout has elapsed, the unused connection will be evicted.",
-            "default": 30000
-        }
-    }
+    "required": [
+        "authorizationServerUrl",
+        "introspectionEndpoint",
+        "authorizationServerMetadataEndpoint",
+        "introspectionEndpointMethod",
+        "clientId",
+        "clientSecret"
+    ]
 }

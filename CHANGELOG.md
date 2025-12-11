@@ -1,3 +1,50 @@
+# [5.0.0-alpha.4](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.3...5.0.0-alpha.4) (2025-12-09)
+
+
+### Bug Fixes
+
+* keep ssl settings for backward compatibility ([73a7942](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/73a7942d9e72a1ff8ac469a5342441dc40ff3e8c))
+  - This introduces a default SSL setting to prevent breaking existing APIs that relied on `hostnameVerifier: false` and `trustAll: true` (the legacy default setting). The new version does not default to the permissive `trustAll` setting, requiring explicit user configuration. However, legacy configurations will continue to use the less secure version to ensure backward compatibility.
+
+
+# [5.0.0-alpha.3](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.2...5.0.0-alpha.3) (2025-12-09)
+
+
+### Bug Fixes
+
+* return an empty list instead of null for the OAuth2ResourceMetadata.scopesSupported ([3920aa3](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/3920aa36ec915439d7d519b71dea91e3f488bc7c))
+
+# [5.0.0-alpha.2](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.1...5.0.0-alpha.2) (2025-12-08)
+
+
+### Features
+
+* use common http client, http proxy and ssl configuration ([76adb0f](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/76adb0fb475da79016631937d7cd7995052331b4))
+
+
+### BREAKING CHANGES
+
+* bump gravitee-parent
+
+# [5.0.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.3.0-alpha.1...5.0.0-alpha.1) (2025-12-04)
+
+
+### Documentation
+
+* update the README.adoc file after breaking change ([874a366](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/874a366f241fe951375038ea160036f031e94ee1))
+
+
+### BREAKING CHANGES
+
+* require APIM 4.10.x
+
+# [4.3.0-alpha.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.2.0...4.3.0-alpha.1) (2025-12-04)
+
+
+### Features
+
+* add the OAuth2GenericResource.getProtectedResourceMetadata() method ([11d719d](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/11d719d22dcd3ca038ad5a483b81e469129e0cb7))
+
 # [4.2.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.1.0...4.2.0) (2025-11-24)
 
 
