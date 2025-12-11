@@ -27,9 +27,15 @@ import io.gravitee.node.api.Node;
 import io.gravitee.node.api.configuration.Configuration;
 import io.gravitee.node.api.utils.NodeUtils;
 import io.gravitee.node.container.spring.SpringEnvironmentConfiguration;
+import io.gravitee.node.vertx.client.http.VertxHttpClientFactory;
 import io.gravitee.node.vertx.proxy.VertxProxyOptionsUtils;
+import io.gravitee.plugin.configurations.ssl.SslOptions;
+import io.gravitee.plugin.mappers.HttpClientOptionsMapper;
+import io.gravitee.plugin.mappers.HttpProxyOptionsMapper;
+import io.gravitee.plugin.mappers.SslOptionsMapper;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2ResourceException;
+import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
@@ -38,12 +44,15 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
+import lombok.AccessLevel;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,11 +82,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     private ApplicationContext applicationContext;
 
-    private final Map<Thread, HttpClient> httpClients = new ConcurrentHashMap<>();
-
-    private HttpClientOptions httpClientOptions;
-
-    private Vertx vertx;
+    private HttpClient httpClient;
 
     private String userAgent;
 
@@ -87,6 +92,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    @Setter(AccessLevel.PACKAGE)
     private OAuth2ResourceConfiguration configuration;
 
     @Inject
@@ -144,62 +150,40 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             authorizationServerPort = 80;
         }
 
-        // Safely convert timeout values from long to int, preventing overflow
-        int idleTimeout = (int) Math.min(Integer.MAX_VALUE, configuration().getHttpClientOptions().getIdleTimeout());
-        int connectTimeout = (int) Math.min(Integer.MAX_VALUE, configuration().getHttpClientOptions().getConnectTimeout());
-        int keepAliveTimeout = (int) Math.min(Integer.MAX_VALUE, configuration().getHttpClientOptions().getKeepAliveTimeout());
+        var target = new URL(
+            authorizationServerUrl.getScheme(),
+            authorizationServerUrl.getHost(),
+            authorizationServerPort,
+            authorizationServerUrl.toURL().getFile()
+        );
 
-        httpClientOptions =
-            new HttpClientOptions()
-                .setDefaultPort(authorizationServerPort)
-                .setDefaultHost(authorizationServerUrl.getHost())
-                .setMaxPoolSize(configuration().getHttpClientOptions().getMaxConcurrentConnections())
-                .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
-                .setIdleTimeout(idleTimeout)
-                .setConnectTimeout(connectTimeout)
-                .setKeepAliveTimeout(keepAliveTimeout);
-
-        // Use SSL connection if authorization schema is set to HTTPS
-        if (HTTPS_SCHEME.equalsIgnoreCase(authorizationServerUrl.getScheme())) {
-            httpClientOptions.setSsl(true).setVerifyHost(false).setTrustAll(true);
-        }
-
-        if (configuration().isUseSystemProxy()) {
-            try {
-                Configuration nodeConfig = new SpringEnvironmentConfiguration(applicationContext.getEnvironment());
-                httpClientOptions.setProxyOptions(VertxProxyOptionsUtils.buildProxyOptions(nodeConfig));
-            } catch (IllegalStateException e) {
-                logger.warn(
-                    "OAuth2 resource requires a system proxy to be defined but some configurations are missing or not well defined: {}",
-                    e.getMessage()
-                );
-                logger.warn("Ignoring system proxy");
-            }
-        }
+        httpClient = VertxHttpClientFactory.builder()
+            .vertx(applicationContext.getBean(io.vertx.rxjava3.core.Vertx.class))
+            .nodeConfiguration(new SpringEnvironmentConfiguration(applicationContext.getEnvironment()))
+            .defaultTarget(target.toString())
+            .httpOptions(HttpClientOptionsMapper.INSTANCE.map(configuration().getHttpClientOptions()))
+            .sslOptions(SslOptionsMapper.INSTANCE.map(configuration().getSslOptions()))
+            .proxyOptions(HttpProxyOptionsMapper.INSTANCE.map(configuration().getHttpProxyOptions()))
+            .build()
+            .createHttpClient()
+            .getDelegate();
 
         userAgent = NodeUtils.userAgent(applicationContext.getBean(Node.class));
-        vertx = applicationContext.getBean(Vertx.class);
     }
 
     @Override
     protected void doStop() throws Exception {
         super.doStop();
 
-        httpClients
-            .values()
-            .forEach(httpClient -> {
-                try {
-                    httpClient.close();
-                } catch (IllegalStateException ise) {
-                    logger.warn(ise.getMessage());
-                }
-            });
+        try {
+            httpClient.close();
+        } catch (IllegalStateException ise) {
+            logger.warn(ise.getMessage());
+        }
     }
 
     @Override
     public void introspect(String accessToken, Handler<OAuth2Response> responseHandler) {
-        HttpClient httpClient = httpClients.computeIfAbsent(Thread.currentThread(), context -> vertx.createHttpClient(httpClientOptions));
-
         StringBuilder uriBuilder = new StringBuilder(introspectionEndpointURI);
 
         if (configuration.isTokenIsSuppliedByQueryParam()) {
@@ -222,13 +206,9 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             String authorizationValue =
                 configuration.getClientAuthorizationHeaderScheme().trim() +
                 AUTHORIZATION_HEADER_SCHEME_SEPARATOR +
-                Base64
-                    .getEncoder()
-                    .encodeToString(
-                        (
-                            configuration.getClientId() + AUTHORIZATION_HEADER_VALUE_BASE64_SEPARATOR + configuration.getClientSecret()
-                        ).getBytes()
-                    );
+                Base64.getEncoder().encodeToString(
+                    (configuration.getClientId() + AUTHORIZATION_HEADER_VALUE_BASE64_SEPARATOR + configuration.getClientSecret()).getBytes()
+                );
             reqOptions.putHeader(authorizationHeader, authorizationValue);
             logger.debug("Set client authorization using HTTP header {} with value {}", authorizationHeader, authorizationValue);
         }
@@ -304,8 +284,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     @Override
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {
-        HttpClient httpClient = httpClients.computeIfAbsent(Thread.currentThread(), context -> vertx.createHttpClient(httpClientOptions));
-
         HttpMethod httpMethod = HttpMethod.valueOf(configuration.getUserInfoEndpointMethod().toUpperCase());
 
         logger.debug("Get userinfo by requesting {} [{}]", userInfoEndpointURI, configuration.getUserInfoEndpointMethod());
@@ -366,5 +344,14 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
+    }
+
+    @Override
+    public OAuth2ResourceMetadata getProtectedResourceMetadata(String protectedResourceUri) {
+        String authServerMetadataEndpoint = configuration.getAuthorizationServerMetadataEndpoint();
+        String authServerEndpoint = authServerMetadataEndpoint.substring(0, authServerMetadataEndpoint.lastIndexOf("/.well-known/"));
+        URI authServerUri = URI.create(configuration.getAuthorizationServerUrl() + authServerEndpoint);
+        String authorizationServer = authServerUri.normalize().toString();
+        return new OAuth2ResourceMetadata(protectedResourceUri, List.of(authorizationServer), List.of());
     }
 }
