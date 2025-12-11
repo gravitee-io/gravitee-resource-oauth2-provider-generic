@@ -1,3 +1,28 @@
+# [5.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/4.2.0...5.0.0) (2025-12-11)
+
+
+### Bug Fixes
+
+* keep ssl settings for backward compatibility ([73a7942](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/73a7942d9e72a1ff8ac469a5342441dc40ff3e8c))
+* return an empty list instead of null for the OAuth2ResourceMetadata.scopesSupported ([3920aa3](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/3920aa36ec915439d7d519b71dea91e3f488bc7c))
+
+
+### Documentation
+
+* update the README.adoc file after breaking change ([874a366](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/874a366f241fe951375038ea160036f031e94ee1))
+
+
+### Features
+
+* add the OAuth2GenericResource.getProtectedResourceMetadata() method ([11d719d](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/11d719d22dcd3ca038ad5a483b81e469129e0cb7))
+* use common http client, http proxy and ssl configuration ([76adb0f](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/76adb0fb475da79016631937d7cd7995052331b4))
+
+
+### BREAKING CHANGES
+
+* bump gravitee-parent
+* require APIM 4.10.x
+
 # [5.0.0-alpha.4](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0-alpha.3...5.0.0-alpha.4) (2025-12-09)
 
 
