@@ -20,15 +20,13 @@ import static org.assertj.core.api.Fail.fail;
 
 import io.gravitee.el.TemplateEngine;
 import io.gravitee.el.spel.context.SecuredResolver;
-import io.gravitee.plugin.configurations.http.HttpClientOptions;
-import io.gravitee.plugin.configurations.http.HttpProxyOptions;
-import io.gravitee.plugin.configurations.ssl.SslOptions;
 import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.gravitee.secrets.api.el.DelegatingEvaluatedSecretsMethods;
 import io.gravitee.secrets.api.el.EvaluatedSecretsMethods;
 import io.gravitee.secrets.api.el.FieldKind;
 import io.gravitee.secrets.api.el.SecretFieldAccessControl;
+import io.reactivex.rxjava3.core.Single;
 import io.vertx.rxjava3.core.Vertx;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -66,18 +64,18 @@ class OAuth2GenericResourceConfigurationTest {
     void before() {
         EvaluatedSecretsMethods delegate = new EvaluatedSecretsMethods() {
             @Override
-            public String fromGrant(String secretValue, SecretFieldAccessControl secretFieldAccessControl) {
+            public Single<String> fromGrant(String secretValue, SecretFieldAccessControl secretFieldAccessControl) {
                 recordedSecretFieldAccessControls.add(secretFieldAccessControl);
-                return secretValue;
+                return Single.just(secretValue);
             }
 
             @Override
-            public String fromGrant(String contextId, String secretKey, SecretFieldAccessControl secretFieldAccessControl) {
+            public Single<String> fromGrant(String contextId, String secretKey, SecretFieldAccessControl secretFieldAccessControl) {
                 return fromGrant(contextId, secretFieldAccessControl);
             }
 
             @Override
-            public String fromEL(String contextId, String uriOrName, SecretFieldAccessControl secretFieldAccessControl) {
+            public Single<String> fromEL(String contextId, String uriOrName, SecretFieldAccessControl secretFieldAccessControl) {
                 return fromGrant(contextId, secretFieldAccessControl);
             }
         };
