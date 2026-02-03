@@ -228,7 +228,8 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             })
             .onSuccess(request -> {
                 request
-                    .response(asyncResponse -> {
+                    .response()
+                    .onComplete(asyncResponse -> {
                         if (asyncResponse.failed()) {
                             logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, asyncResponse.cause());
                             responseHandler.handle(new OAuth2Response(asyncResponse.cause()));
@@ -267,10 +268,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                 }
                             });
                         }
-                    })
-                    .exceptionHandler(event -> {
-                        logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, event);
-                        responseHandler.handle(new OAuth2Response(event));
                     });
 
                 if (httpMethod == HttpMethod.POST && configuration.isTokenIsSuppliedByFormUrlEncoded()) {
@@ -301,9 +298,10 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                 logger.error(ERROR_GETTING_USERINFO, event);
                 responseHandler.handle(new UserInfoResponse(event));
             })
-            .onSuccess(request ->
+            .onSuccess(request -> {
                 request
-                    .response(asyncResponse -> {
+                    .response()
+                    .onComplete(asyncResponse -> {
                         if (asyncResponse.failed()) {
                             logger.error(ERROR_GETTING_USERINFO, asyncResponse.cause());
                             responseHandler.handle(new UserInfoResponse(asyncResponse.cause()));
@@ -324,13 +322,9 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                 }
                             });
                         }
-                    })
-                    .exceptionHandler(event -> {
-                        logger.error(ERROR_GETTING_USERINFO, event);
-                        responseHandler.handle(new UserInfoResponse(event));
-                    })
-                    .end()
-            );
+                    });
+                request.end();
+            });
     }
 
     @Override
