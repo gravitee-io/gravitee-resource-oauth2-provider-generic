@@ -36,6 +36,7 @@ import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfigura
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.rxjava3.core.Vertx;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.awaitility.Awaitility;
@@ -324,12 +325,30 @@ class OAuth2GenericResourceTest {
         configuration.setAuthorizationServerMetadataEndpoint("/realms/myrealm/.well-known/oauth-authorization-server");
         configuration.setAuthorizationServerUrl(authorizationServerUrl);
         resource.setConfiguration(configuration);
-        OAuth2ResourceMetadata resourceMetadata = resource.getProtectedResourceMetadata("https://backend.com");
+        OAuth2ResourceMetadata resourceMetadata = resource.getProtectedResourceMetadata("https://backend.com", List.of());
         assertAll(
             () -> assertThat(resourceMetadata.protectedResourceUri()).isEqualTo("https://backend.com"),
             () -> assertThat(resourceMetadata.authorizationServers().get(0)).isEqualTo("https://some.keycloak.com/realms/myrealm"),
             () -> assertThat(resourceMetadata.authorizationServers().size()).isEqualTo(1),
             () -> assertThat(resourceMetadata.scopesSupported()).isEmpty()
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "https://some.keycloak.com", "https://some.keycloak.com/" })
+    void testGetProtectedResourceMetadata_with_scopes_supported(String authorizationServerUrl) {
+        OAuth2GenericResource resource = new OAuth2GenericResource();
+        OAuth2ResourceConfiguration configuration = new OAuth2ResourceConfiguration();
+        configuration.setAuthorizationServerMetadataEndpoint("/realms/myrealm/.well-known/oauth-authorization-server");
+        configuration.setAuthorizationServerUrl(authorizationServerUrl);
+        resource.setConfiguration(configuration);
+        List<String> scopesSupported = List.of("read", "write", "admin");
+        OAuth2ResourceMetadata resourceMetadata = resource.getProtectedResourceMetadata("https://backend.com", scopesSupported);
+        assertAll(
+            () -> assertThat(resourceMetadata.protectedResourceUri()).isEqualTo("https://backend.com"),
+            () -> assertThat(resourceMetadata.authorizationServers().get(0)).isEqualTo("https://some.keycloak.com/realms/myrealm"),
+            () -> assertThat(resourceMetadata.authorizationServers().size()).isEqualTo(1),
+            () -> assertThat(resourceMetadata.scopesSupported()).containsExactly("read", "write", "admin")
         );
     }
 }
