@@ -346,10 +346,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         String authServerEndpoint = authServerMetadataEndpoint.substring(0, authServerMetadataEndpoint.lastIndexOf("/.well-known/"));
         URI authServerUri = URI.create(configuration.getAuthorizationServerUrl() + authServerEndpoint);
         String authorizationServer = authServerUri.normalize().toString();
-        return new OAuth2ResourceMetadata(
-            protectedResourceUri,
-            List.of(authorizationServer),
-            scopesSupported != null ? scopesSupported : List.of()
-        );
+        return new OAuth2ResourceMetadata(protectedResourceUri, List.of(authorizationServer), scopesSupported);
     }
 }

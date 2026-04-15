@@ -336,7 +336,7 @@ class OAuth2GenericResourceTest {
 
     @ParameterizedTest
     @ValueSource(strings = { "https://some.keycloak.com", "https://some.keycloak.com/" })
-    void testGetProtectedResourceMetadata_with_scopes_supported(String authorizationServerUrl) {
+    public void testGetProtectedResourceMetadata_with_scopes_supported(String authorizationServerUrl) {
         OAuth2GenericResource resource = new OAuth2GenericResource();
         OAuth2ResourceConfiguration configuration = new OAuth2ResourceConfiguration();
         configuration.setAuthorizationServerMetadataEndpoint("/realms/myrealm/.well-known/oauth-authorization-server");
