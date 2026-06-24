@@ -1,3 +1,21 @@
+# [6.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.1...6.0.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* bump apim dependency to 4.12.0-milestone.1 ([0e5e1e4](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/0e5e1e4aadaa3c418bc09459d17d3621da2e7c50))
+* include the scopes when returning the protected resource metadata from the oauth2 policy ([3b91bd5](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/3b91bd50816888169989331e70e3557b6c79cc34))
+
+
+### Features
+
+* upgrade to vertx 5 ([cc198e5](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/cc198e59940bf1c699c468328abf501e411cf365))
+
+
+### BREAKING CHANGES
+
+* upgrade to vertx 5.x
+
 ## [5.0.1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.0...5.0.1) (2026-04-16)
 
 
