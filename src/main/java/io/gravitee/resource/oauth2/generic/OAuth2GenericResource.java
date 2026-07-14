@@ -38,6 +38,8 @@ import io.gravitee.resource.oauth2.api.OAuth2ResourceException;
 import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
+import io.gravitee.resource.oauth2.api.tokenexchange.TokenExchangeRequest;
+import io.gravitee.resource.oauth2.api.tokenexchange.TokenExchangeResponse;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfigurationEvaluator;
 import io.vertx.core.Vertx;
@@ -45,12 +47,16 @@ import io.vertx.core.http.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import lombok.AccessLevel;
 import lombok.Setter;
@@ -69,6 +75,9 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     public static final String ERROR_CHECKING_OAUTH_2_TOKEN = "An error occurs while checking OAuth2 token";
     public static final String ERROR_GETTING_USERINFO = "An error occurs while getting userinfo from access token";
+    public static final String ERROR_EXCHANGING_TOKEN = "An error occurs while exchanging token";
+
+    private static final String TOKEN_EXCHANGE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:token-exchange";
     private final Logger logger = LoggerFactory.getLogger(OAuth2GenericResource.class);
 
     // Pattern reuse for duplicate slash removal
@@ -89,6 +98,8 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     private String introspectionEndpointURI;
 
     private String userInfoEndpointURI;
+
+    private String tokenExchangeEndpointURL;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -156,6 +167,11 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             authorizationServerPort,
             authorizationServerUrl.toURL().getFile()
         );
+
+        String tokenExchangeEndpoint = configuration().getTokenExchangeEndpoint();
+        if (tokenExchangeEndpoint != null && !tokenExchangeEndpoint.isBlank()) {
+            tokenExchangeEndpointURL = tokenExchangeEndpoint.trim();
+        }
 
         httpClient = VertxHttpClientFactory.builder()
             .vertx(applicationContext.getBean(io.vertx.rxjava3.core.Vertx.class))
@@ -325,6 +341,152 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                     });
                 request.end();
             });
+    }
+
+    @Override
+    public void tokenExchange(TokenExchangeRequest tokenExchangeRequest, Handler<TokenExchangeResponse> responseHandler) {
+        if (tokenExchangeEndpointURL == null) {
+            responseHandler.handle(new TokenExchangeResponse(new OAuth2ResourceException("tokenExchangeEndpoint is not configured")));
+            return;
+        }
+
+        if (tokenExchangeRequest == null) {
+            responseHandler.handle(new TokenExchangeResponse(new IllegalArgumentException("tokenExchangeRequest cannot be null")));
+            return;
+        }
+
+        if (tokenExchangeRequest.getSubjectToken() == null || tokenExchangeRequest.getSubjectToken().isBlank()) {
+            responseHandler.handle(new TokenExchangeResponse(new IllegalArgumentException("subject_token is required")));
+            return;
+        }
+
+        if (tokenExchangeRequest.getSubjectTokenType() == null || tokenExchangeRequest.getSubjectTokenType().isBlank()) {
+            responseHandler.handle(new TokenExchangeResponse(new IllegalArgumentException("subject_token_type is required")));
+            return;
+        }
+
+        logger.debug("Exchange token by requesting {}", tokenExchangeEndpointURL);
+
+        final RequestOptions reqOptions = new RequestOptions()
+            .setMethod(HttpMethod.POST)
+            .setAbsoluteURI(tokenExchangeEndpointURL)
+            .putHeader(HttpHeaderNames.USER_AGENT, userAgent)
+            .putHeader("X-Gravitee-Request-Id", UUID.toString(UUID.random()))
+            .putHeader(HttpHeaderNames.ACCEPT, MediaType.APPLICATION_JSON)
+            .putHeader(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED);
+
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("grant_type", TOKEN_EXCHANGE_GRANT_TYPE);
+        form.put("subject_token", tokenExchangeRequest.getSubjectToken());
+        form.put("subject_token_type", tokenExchangeRequest.getSubjectTokenType());
+        putIfPresent(form, "resource", tokenExchangeRequest.getResource());
+        putIfPresent(form, "audience", tokenExchangeRequest.getAudience());
+        putIfPresent(form, "scope", tokenExchangeRequest.getScope());
+        putIfPresent(form, "requested_token_type", tokenExchangeRequest.getRequestedTokenType());
+        putIfPresent(form, "actor_token", tokenExchangeRequest.getActorToken());
+        putIfPresent(form, "actor_token_type", tokenExchangeRequest.getActorTokenType());
+
+        String clientId = configuration().getClientId();
+        String clientSecret = configuration().getClientSecret();
+        boolean hasClientCredentials = clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
+
+        if (hasClientCredentials) {
+            if (configuration().isUseClientAuthorizationHeader()) {
+                String authorizationHeader = configuration.getClientAuthorizationHeaderName();
+                String authorizationValue =
+                    configuration.getClientAuthorizationHeaderScheme().trim() +
+                    AUTHORIZATION_HEADER_SCHEME_SEPARATOR +
+                    Base64.getEncoder().encodeToString(
+                        (clientId + AUTHORIZATION_HEADER_VALUE_BASE64_SEPARATOR + clientSecret).getBytes(StandardCharsets.UTF_8)
+                    );
+                reqOptions.putHeader(authorizationHeader, authorizationValue);
+            } else {
+                form.put("client_id", clientId);
+                form.put("client_secret", clientSecret);
+            }
+        }
+
+        String body = form
+            .entrySet()
+            .stream()
+            .map(
+                entry ->
+                    URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) +
+                    '=' +
+                    URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8)
+            )
+            .collect(Collectors.joining("&"));
+
+        httpClient
+            .request(reqOptions)
+            .onFailure(event -> {
+                logger.error(ERROR_EXCHANGING_TOKEN, event);
+                responseHandler.handle(new TokenExchangeResponse(event));
+            })
+            .onSuccess(request -> {
+                request
+                    .response()
+                    .onComplete(asyncResponse -> {
+                        if (asyncResponse.failed()) {
+                            logger.error(ERROR_EXCHANGING_TOKEN, asyncResponse.cause());
+                            responseHandler.handle(new TokenExchangeResponse(asyncResponse.cause()));
+                        } else {
+                            final HttpClientResponse response = asyncResponse.result();
+                            response.bodyHandler(buffer -> {
+                                logger.debug("Token exchange endpoint returns a response with a {} status code", response.statusCode());
+
+                                if (response.statusCode() == HttpStatusCode.OK_200) {
+                                    handleTokenExchangeSuccess(buffer.toString(), responseHandler);
+                                } else {
+                                    logger.error(
+                                        "An error occurs while exchanging token. Request ends with status {}: {}",
+                                        response.statusCode(),
+                                        buffer
+                                    );
+                                    responseHandler.handle(new TokenExchangeResponse(new OAuth2ResourceException(ERROR_EXCHANGING_TOKEN)));
+                                }
+                            });
+                        }
+                    });
+                request.end(body);
+            });
+    }
+
+    private void handleTokenExchangeSuccess(String body, Handler<TokenExchangeResponse> responseHandler) {
+        try {
+            JsonNode payload = MAPPER.readTree(body);
+            String accessToken = payload.path("access_token").asText(null);
+            if (accessToken == null) {
+                responseHandler.handle(
+                    new TokenExchangeResponse(new OAuth2ResourceException("Token exchange response does not contain an access_token"))
+                );
+                return;
+            }
+            TokenExchangeResponse.Builder responseBuilder = TokenExchangeResponse.builder(
+                accessToken,
+                payload.path("issued_token_type").asText(null),
+                payload.path("token_type").asText(null)
+            );
+            if (payload.hasNonNull("expires_in")) {
+                responseBuilder.expiresIn(payload.path("expires_in").asLong());
+            }
+            if (payload.hasNonNull("scope")) {
+                responseBuilder.scope(payload.path("scope").asText());
+            }
+            if (payload.hasNonNull("refresh_token")) {
+                responseBuilder.refreshToken(payload.path("refresh_token").asText());
+            }
+            responseHandler.handle(responseBuilder.build());
+        } catch (IOException e) {
+            logger.error("Unable to parse token exchange response: {}", body, e);
+            responseHandler.handle(new TokenExchangeResponse(e));
+        }
+    }
+
+    private static void putIfPresent(Map<String, String> form, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            form.put(key, value);
+        }
     }
 
     @Override

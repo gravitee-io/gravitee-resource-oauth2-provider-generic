@@ -80,7 +80,10 @@
         <dependency>
             <groupId>io.gravitee.resource</groupId>
             <artifactId>gravitee-resource-oauth2-provider-api</artifactId>
-            <scope>provided</scope>
+            <!-- Version pinned (instead of provided scope) so the plugin bundles the token-exchange-capable
+                 resource API and can run on APIM versions that still provide an older one. Move back to
+                 provided scope once all maintained APIM versions ship resource API >= 1.6.0. -->
+            <version>1.6.0-token-exchange-support-SNAPSHOT</version>
         </dependency>
 
         <dependency>

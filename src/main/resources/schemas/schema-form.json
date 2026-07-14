@@ -27,6 +27,11 @@
             "enum": ["GET", "POST"],
             "default": "GET"
         },
+        "tokenExchangeEndpoint": {
+            "title": "Token exchange endpoint",
+            "description": "Full URL of the OAuth 2.0 Token Exchange endpoint (RFC 8693). Supports EL",
+            "type": "string"
+        },
         "scopeSeparator": {
             "title": "Scope separator",
             "description": "Separator used to separate scopes for token introspection (default is a whitespace)",
