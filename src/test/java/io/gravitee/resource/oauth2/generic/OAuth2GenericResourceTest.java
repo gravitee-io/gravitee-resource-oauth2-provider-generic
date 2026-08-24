@@ -17,6 +17,7 @@ package io.gravitee.resource.oauth2.generic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.lenient;
 
@@ -34,13 +35,18 @@ import io.gravitee.plugin.configurations.http.HttpProxyOptions;
 import io.gravitee.plugin.configurations.ssl.SslOptions;
 import io.gravitee.resource.api.AbstractConfigurableResource;
 import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
+import io.gravitee.resource.oauth2.api.tokenexchange.TokenExchangeRequest;
+import io.gravitee.resource.oauth2.api.tokenexchange.TokenExchangeResponse;
 import io.gravitee.resource.oauth2.generic.configuration.OAuth2ResourceConfiguration;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.rxjava3.core.Vertx;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -431,5 +437,361 @@ class OAuth2GenericResourceTest {
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
         verify(getRequestedFor(urlPathEqualTo("/userinfo")).withHeader("Authorization", equalTo("Bearer xxxx-xxxx-xxxx-xxxx")));
+    }
+
+    @Test
+    void should_exchange_token_with_basic_client_authentication(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        stubFor(
+            post(urlEqualTo("/oauth/token")).willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withBody(
+                        "{\"access_token\": \"exchanged-token\", \"issued_token_type\": \"urn:ietf:params:oauth:token-type:access_token\", \"token_type\": \"Bearer\", \"expires_in\": 3600, \"scope\": \"read\"}"
+                    )
+            )
+        );
+
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+        configuration.setClientId("my-client");
+        configuration.setClientSecret("my-secret");
+        configuration.setUseClientAuthorizationHeader(true);
+        configuration.setClientAuthorizationHeaderName("Authorization");
+        configuration.setClientAuthorizationHeaderScheme("Basic");
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).audience("upstream-mcp").build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+
+        assertAll(
+            () -> assertThat(result.get().isSuccess()).isTrue(),
+            () -> assertThat(result.get().getAccessToken()).isEqualTo("exchanged-token"),
+            () -> assertThat(result.get().getIssuedTokenType()).isEqualTo("urn:ietf:params:oauth:token-type:access_token"),
+            () -> assertThat(result.get().getTokenType()).isEqualTo("Bearer"),
+            () -> assertThat(result.get().getExpiresIn()).isEqualTo(3600L),
+            () -> assertThat(result.get().getScope()).isEqualTo("read")
+        );
+
+        verify(
+            postRequestedFor(urlPathEqualTo("/oauth/token"))
+                .withHeader(
+                    "Authorization",
+                    equalTo("Basic " + Base64.getEncoder().encodeToString("my-client:my-secret".getBytes(StandardCharsets.UTF_8)))
+                )
+                .withRequestBody(containing("grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange"))
+                .withRequestBody(containing("subject_token=subject-token"))
+                .withRequestBody(containing("subject_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token"))
+                .withRequestBody(containing("audience=upstream-mcp"))
+        );
+    }
+
+    @Test
+    void should_exchange_token_with_client_credentials_in_body(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        stubFor(
+            post(urlEqualTo("/oauth/token")).willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withBody(
+                        "{\"access_token\": \"exchanged-token\", \"issued_token_type\": \"urn:ietf:params:oauth:token-type:access_token\", \"token_type\": \"Bearer\"}"
+                    )
+            )
+        );
+
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+        configuration.setClientId("my-client");
+        configuration.setClientSecret("my-secret");
+        configuration.setUseClientAuthorizationHeader(false);
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+
+        assertThat(result.get().isSuccess()).isTrue();
+
+        verify(
+            postRequestedFor(urlPathEqualTo("/oauth/token"))
+                .withRequestBody(containing("client_id=my-client"))
+                .withRequestBody(containing("client_secret=my-secret"))
+        );
+    }
+
+    @Test
+    void should_fail_token_exchange_when_endpoint_returns_an_error(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        stubFor(
+            post(urlEqualTo("/oauth/token")).willReturn(
+                aResponse().withStatus(400).withBody("{\"error\": \"invalid_grant\", \"error_description\": \"token is not active\"}")
+            )
+        );
+
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+
+        assertAll(
+            () -> assertThat(result.get().isSuccess()).isFalse(),
+            () -> assertThat(result.get().getThrowable()).isNotNull(),
+            () -> assertThat(result.get().getThrowable()).hasMessageContaining("400"),
+            () -> assertThat(result.get().getThrowable()).hasMessageContaining("invalid_grant"),
+            () -> assertThat(result.get().getThrowable()).hasMessageContaining("token is not active")
+        );
+    }
+
+    @Test
+    void should_fail_token_exchange_when_endpoint_returns_a_non_json_error(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        stubFor(post(urlEqualTo("/oauth/token")).willReturn(aResponse().withStatus(503).withBody("<html>Service Unavailable</html>")));
+
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+
+        assertAll(
+            () -> assertThat(result.get().isSuccess()).isFalse(),
+            () -> assertThat(result.get().getThrowable()).hasMessageContaining("503")
+        );
+    }
+
+    @Test
+    void should_introspect_with_client_authorization_header(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        stubFor(post(urlEqualTo("/oauth/introspect")).willReturn(aResponse().withStatus(200).withBody("{\"active\": true}")));
+
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setClientId("my-client");
+        configuration.setClientSecret("my-secret");
+        configuration.setUseClientAuthorizationHeader(true);
+        configuration.setClientAuthorizationHeaderName("Authorization");
+        configuration.setClientAuthorizationHeaderScheme("Basic");
+
+        resource.doStart();
+
+        AtomicBoolean check = new AtomicBoolean();
+        resource.introspect("xxxx-xxxx-xxxx-xxxx", oAuth2Response -> check.set(true));
+
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
+
+        verify(
+            postRequestedFor(urlPathEqualTo("/oauth/introspect")).withHeader(
+                "Authorization",
+                equalTo("Basic " + Base64.getEncoder().encodeToString("my-client:my-secret".getBytes(StandardCharsets.UTF_8)))
+            )
+        );
+    }
+
+    @Test
+    void should_fail_token_exchange_when_subject_token_is_missing(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(TokenExchangeRequest.builder(null, TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(), result::set);
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+
+        assertAll(
+            () -> assertThat(result.get().isSuccess()).isFalse(),
+            () -> assertThat(result.get().getThrowable()).hasMessageContaining("subject_token is required")
+        );
+    }
+
+    @Test
+    void should_fail_token_exchange_when_token_endpoint_is_not_configured(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+
+        assertAll(
+            () -> assertThat(result.get().isSuccess()).isFalse(),
+            () -> assertThat(result.get().getThrowable()).hasMessageContaining("tokenExchangeEndpoint is not configured")
+        );
+    }
+
+    @Test
+    void should_resolve_the_token_exchange_endpoint_against_the_authorization_server_url(WireMockRuntimeInfo wireMockRuntimeInfo)
+        throws Exception {
+        stubFor(
+            post(urlEqualTo("/oauth/token")).willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withBody(
+                        "{\"access_token\": \"t\", \"issued_token_type\": \"urn:ietf:params:oauth:token-type:access_token\", \"token_type\": \"Bearer\"}"
+                    )
+            )
+        );
+
+        // trailing slash on the base and a leading slash on the path must not produce a double slash
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/");
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+        assertThat(result.get().isSuccess()).isTrue();
+        verify(postRequestedFor(urlEqualTo("/oauth/token")));
+    }
+
+    @Test
+    void should_accept_an_absolute_token_exchange_endpoint_on_the_authorization_server(WireMockRuntimeInfo wireMockRuntimeInfo)
+        throws Exception {
+        stubFor(
+            post(urlEqualTo("/oauth/token")).willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withBody(
+                        "{\"access_token\": \"t\", \"issued_token_type\": \"urn:ietf:params:oauth:token-type:access_token\", \"token_type\": \"Bearer\"}"
+                    )
+            )
+        );
+
+        // configurations written without authorizationServerUrl carry absolute URLs; still supported on the same server
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/token");
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+        assertThat(result.get().isSuccess()).isTrue();
+    }
+
+    @Test
+    void should_refuse_to_start_when_the_token_exchange_endpoint_targets_another_server(WireMockRuntimeInfo wireMockRuntimeInfo) {
+        // the shared client carries the TLS and proxy settings of the authorization server only
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("https://other-idp.example.com/oauth/token");
+
+        assertThatThrownBy(resource::doStart)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("tokenExchangeEndpoint")
+            .hasMessageContaining("other-idp.example.com");
+    }
+
+    @Test
+    void should_refuse_to_start_when_the_token_exchange_endpoint_is_a_bare_path_without_authorization_server_url(
+        WireMockRuntimeInfo wireMockRuntimeInfo
+    ) {
+        // the case that used to throw synchronously from tokenExchange() and never call the handler
+        configuration.setIntrospectionEndpoint("http://localhost:" + wireMockRuntimeInfo.getHttpPort() + "/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+
+        assertThatThrownBy(resource::doStart).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("tokenExchangeEndpoint");
+    }
+
+    @Test
+    void should_refuse_to_start_when_the_token_exchange_endpoint_is_malformed(WireMockRuntimeInfo wireMockRuntimeInfo) {
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token with spaces");
+
+        assertThatThrownBy(resource::doStart).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("tokenExchangeEndpoint");
+    }
+
+    @Test
+    void should_fail_token_exchange_when_the_response_lacks_a_required_field(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        // RFC 8693 section 2.2.1: token_type is required, the consumer builds the Authorization header from it
+        stubFor(post(urlEqualTo("/oauth/token")).willReturn(aResponse().withStatus(200).withBody("{\"access_token\": \"t\"}")));
+
+        configuration.setAuthorizationServerUrl("http://localhost:" + wireMockRuntimeInfo.getHttpPort());
+        configuration.setIntrospectionEndpoint("/oauth/introspect");
+        configuration.setIntrospectionEndpointMethod(HttpMethod.POST.name());
+        configuration.setTokenExchangeEndpoint("/oauth/token");
+
+        resource.doStart();
+
+        AtomicReference<TokenExchangeResponse> result = new AtomicReference<>();
+        resource.tokenExchange(
+            TokenExchangeRequest.builder("subject-token", TokenExchangeRequest.TOKEN_TYPE_ACCESS_TOKEN).build(),
+            result::set
+        );
+
+        Awaitility.await()
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> result.get() != null);
+        assertThat(result.get().isSuccess()).isFalse();
+        assertThat(result.get().getThrowable()).hasMessageContaining("issued_token_type");
     }
 }
