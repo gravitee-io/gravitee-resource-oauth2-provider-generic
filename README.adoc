@@ -28,7 +28,8 @@ The configuration comes in two variants:
 |===
 |Plugin version | APIM version
 
-|6.0 and upper                  | 4.12.x to latest
+|7.0 and upper                  | 4.12.18 to latest
+|6.0 and upper                  | 4.12.x to 4.12.17
 |5.0 and upper                  | 4.10.x to latest
 |4.0 and upper                  | 4.6.x to 4.9.x
 |3.0 and upper                  | 4.4.x to 4.5.x
@@ -66,6 +67,14 @@ You can configure the resource with the following options :
 ^.^|HTTP Method
 ^.^|GET
 ^.^|-
+^.^|-
+
+.^|tokenExchangeEndpoint
+^.^|-
+|Path of the OAuth 2.0 token exchange endpoint (RFC 8693), resolved against `authorizationServerUrl` like the other endpoints. It must be on the same authorization server, so the resource's TLS and proxy settings apply. Leave empty if the server does not support token exchange.
+^.^|string
+^.^|-
+^.^|X
 ^.^|-
 
 .^|clientId
@@ -150,6 +159,7 @@ You can configure the resource with the following options :
     "configuration": {
         "introspectionEndpoint": "https://my_authorization_server/oauth/check_token",
         "introspectionEndpointMethod": "POST",
+        "tokenExchangeEndpoint": "https://my_authorization_server/oauth/token",
         "clientAuthorizationHeaderName": "Authorization",
         "clientAuthorizationHeaderScheme": "Basic",
         "clientId": "my-client",

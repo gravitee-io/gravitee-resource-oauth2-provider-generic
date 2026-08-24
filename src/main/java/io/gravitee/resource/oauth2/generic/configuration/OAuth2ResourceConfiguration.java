@@ -40,6 +40,8 @@ public class OAuth2ResourceConfiguration implements ResourceConfiguration {
     private String introspectionEndpoint;
     private String authorizationServerMetadataEndpoint;
 
+    private String tokenExchangeEndpoint;
+
     @Setter(AccessLevel.NONE)
     private boolean useSystemProxy;
 
