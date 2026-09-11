@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.lenient;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.gravitee.common.http.HttpMethod;
@@ -350,5 +352,84 @@ class OAuth2GenericResourceTest {
             () -> assertThat(resourceMetadata.authorizationServers().size()).isEqualTo(1),
             () -> assertThat(resourceMetadata.scopesSupported()).containsExactly("read", "write", "admin")
         );
+    }
+
+    /** Same leniency as the gateway, see ResourceConfigurationFactoryImpl. */
+    private static final ObjectMapper GATEWAY_MAPPER = new ObjectMapper().configure(
+        DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+        false
+    );
+
+    private void loadConfigurationFrom(String json) throws Exception {
+        Field configurationField = AbstractConfigurableResource.class.getDeclaredField("configuration");
+        configurationField.setAccessible(true);
+        configurationField.set(resource, GATEWAY_MAPPER.readValue(json, OAuth2ResourceConfiguration.class));
+    }
+
+    @Test
+    void should_get_user_info_from_a_configuration_written_before_the_variant_split(WireMockRuntimeInfo wireMockRuntimeInfo)
+        throws Exception {
+        stubFor(
+            get(urlEqualTo("/userinfo")).willReturn(
+                aResponse().withStatus(200).withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\"}")
+            )
+        );
+
+        // no discriminator, as stored by any existing API
+        loadConfigurationFrom(
+            """
+            {
+              "authorizationServerUrl": "http://localhost:%d",
+              "introspectionEndpoint": "/oauth/check_token",
+              "userInfoEndpoint": "/userinfo",
+              "userInfoEndpointMethod": "GET",
+              "clientId": "a-client",
+              "clientSecret": "a-secret"
+            }
+            """.formatted(wireMockRuntimeInfo.getHttpPort())
+        );
+
+        resource.doStart();
+
+        AtomicBoolean check = new AtomicBoolean();
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            assertThat(userInfoResponse.isSuccess()).isTrue();
+            check.set(true);
+        });
+
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
+        verify(getRequestedFor(urlPathEqualTo("/userinfo")).withHeader("Authorization", equalTo("Bearer xxxx-xxxx-xxxx-xxxx")));
+    }
+
+    @Test
+    void should_get_user_info_from_a_userinfo_variant_configuration(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        stubFor(
+            get(urlEqualTo("/userinfo")).willReturn(
+                aResponse().withStatus(200).withBody("{\"sub\": \"248289761001\", \"name\": \"Jane Doe\"}")
+            )
+        );
+
+        // the discriminator has no Java counterpart: the gateway must ignore it
+        loadConfigurationFrom(
+            """
+            {
+              "mode": "USERINFO",
+              "authorizationServerUrl": "http://localhost:%d",
+              "userInfoEndpoint": "/userinfo",
+              "userInfoEndpointMethod": "GET"
+            }
+            """.formatted(wireMockRuntimeInfo.getHttpPort())
+        );
+
+        resource.doStart();
+
+        AtomicBoolean check = new AtomicBoolean();
+        resource.userInfo("xxxx-xxxx-xxxx-xxxx", userInfoResponse -> {
+            assertThat(userInfoResponse.isSuccess()).isTrue();
+            check.set(true);
+        });
+
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilTrue(check);
+        verify(getRequestedFor(urlPathEqualTo("/userinfo")).withHeader("Authorization", equalTo("Bearer xxxx-xxxx-xxxx-xxxx")));
     }
 }

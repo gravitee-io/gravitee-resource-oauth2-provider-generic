@@ -209,6 +209,11 @@
             <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.gravitee.json</groupId>
+            <artifactId>gravitee-json-validation</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
