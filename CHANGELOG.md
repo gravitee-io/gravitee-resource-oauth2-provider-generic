@@ -1,3 +1,11 @@
+# [6.1.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/6.0.0...6.1.0) (2026-09-11)
+
+
+### Features
+
+* **plugin:** rename resource to OAuth2 / OpenID Connect Provider ([20670dc](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/20670dc726f055e6225b5c16c3524a2fb5787f40))
+* **schema:** split configuration into introspection and userinfo variants ([43882f7](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/43882f759c35a74913c67077c33f1b221a9754ba))
+
 # [6.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/5.0.1...6.0.0) (2026-06-24)
 
 
