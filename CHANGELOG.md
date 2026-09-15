@@ -1,3 +1,19 @@
+# [7.0.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/6.1.0...7.0.0) (2026-09-15)
+
+
+### Features
+
+* support OAuth 2.0 Token Exchange (RFC 8693) ([e1f41c1](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/commit/e1f41c185c0b368cc80660a29c13f0252c29ebc0))
+
+
+### BREAKING CHANGES
+
+* requires APIM 4.12.18 or later. The resource now references
+resource-oauth2-provider-api 1.6.0 types in its class signature, so on a
+gateway shipping 1.5.1 (APIM 4.12.0 to 4.12.17) the class fails to load and
+the resource, including introspection, is not instantiated. Pinning the
+dependency does not change that: it only affects the compile classpath.
+
 # [6.1.0](https://github.com/gravitee-io/gravitee-resource-oauth2-provider-generic/compare/6.0.0...6.1.0) (2026-09-11)
 
 
