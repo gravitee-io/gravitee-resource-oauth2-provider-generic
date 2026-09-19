@@ -59,9 +59,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import lombok.AccessLevel;
+import lombok.CustomLog;
 import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -71,6 +70,7 @@ import org.springframework.context.ApplicationContextAware;
  * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
+@CustomLog
 public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfiguration> implements ApplicationContextAware {
 
     public static final String ERROR_CHECKING_OAUTH_2_TOKEN = "An error occurs while checking OAuth2 token";
@@ -79,7 +79,6 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
     private static final String TOKEN_EXCHANGE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:token-exchange";
     private static final String[] REQUIRED_TOKEN_EXCHANGE_FIELDS = { "access_token", "issued_token_type", "token_type" };
-    private final Logger logger = LoggerFactory.getLogger(OAuth2GenericResource.class);
 
     // Pattern reuse for duplicate slash removal
     private static final Pattern DUPLICATE_SLASH_REMOVER = Pattern.compile("(?<!(http:|https:))[//]+");
@@ -125,7 +124,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
 
         configuration = new OAuth2ResourceConfigurationEvaluator(configuration()).evalNow(deploymentContext);
 
-        logger.info("Starting an OAuth2 resource using authorization server at {}", configuration().getAuthorizationServerUrl());
+        log.info("Starting an OAuth2 resource using authorization server at {}", configuration().getAuthorizationServerUrl());
 
         String sAuthorizationServerUrl = configuration().getAuthorizationServerUrl();
 
@@ -196,7 +195,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         try {
             httpClient.close();
         } catch (IllegalStateException ise) {
-            logger.warn(ise.getMessage());
+            log.warn(ise.getMessage());
         }
     }
 
@@ -209,7 +208,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         }
 
         String endpointURI = uriBuilder.toString();
-        logger.debug("Introspect access token by requesting {} [{}]", endpointURI, configuration.getIntrospectionEndpointMethod());
+        log.debug("Introspect access token by requesting {} [{}]", endpointURI, configuration.getIntrospectionEndpointMethod());
 
         final HttpMethod httpMethod = HttpMethod.valueOf(configuration.getIntrospectionEndpointMethod().toUpperCase());
 
@@ -222,7 +221,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         if (configuration().isUseClientAuthorizationHeader()) {
             String authorizationHeader = configuration().getClientAuthorizationHeaderName();
             reqOptions.putHeader(authorizationHeader, clientAuthorizationHeaderValue());
-            logger.debug("Set client authorization using HTTP header {}", authorizationHeader);
+            log.debug("Set client authorization using HTTP header {}", authorizationHeader);
         }
 
         // Set `Accept` header to ask for application/json content
@@ -235,7 +234,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         httpClient
             .request(reqOptions)
             .onFailure(event -> {
-                logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, event);
+                log.error(ERROR_CHECKING_OAUTH_2_TOKEN, event);
                 responseHandler.handle(new OAuth2Response(event));
             })
             .onSuccess(request -> {
@@ -243,7 +242,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                     .response()
                     .onComplete(asyncResponse -> {
                         if (asyncResponse.failed()) {
-                            logger.error(ERROR_CHECKING_OAUTH_2_TOKEN, asyncResponse.cause());
+                            log.error(ERROR_CHECKING_OAUTH_2_TOKEN, asyncResponse.cause());
                             responseHandler.handle(new OAuth2Response(asyncResponse.cause()));
                         } else {
                             final HttpClientResponse response = asyncResponse.result();
@@ -267,11 +266,11 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                                             responseHandler.handle(new OAuth2Response(true, content));
                                         }
                                     } catch (IOException e) {
-                                        logger.error("Unable to validate introspection endpoint payload: {}", content, e);
+                                        log.error("Unable to validate introspection endpoint payload: {}", content, e);
                                         responseHandler.handle(new OAuth2Response(e));
                                     }
                                 } else {
-                                    logger.error(
+                                    log.error(
                                         "An error occurs while checking OAuth2 token. Request ends with status {}: {}",
                                         response.statusCode(),
                                         buffer
@@ -295,7 +294,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {
         HttpMethod httpMethod = HttpMethod.valueOf(configuration.getUserInfoEndpointMethod().toUpperCase());
 
-        logger.debug("Get userinfo by requesting {} [{}]", userInfoEndpointURI, configuration.getUserInfoEndpointMethod());
+        log.debug("Get userinfo by requesting {} [{}]", userInfoEndpointURI, configuration.getUserInfoEndpointMethod());
 
         final RequestOptions reqOptions = new RequestOptions()
             .setMethod(httpMethod)
@@ -307,7 +306,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         httpClient
             .request(reqOptions)
             .onFailure(event -> {
-                logger.error(ERROR_GETTING_USERINFO, event);
+                log.error(ERROR_GETTING_USERINFO, event);
                 responseHandler.handle(new UserInfoResponse(event));
             })
             .onSuccess(request -> {
@@ -315,17 +314,17 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                     .response()
                     .onComplete(asyncResponse -> {
                         if (asyncResponse.failed()) {
-                            logger.error(ERROR_GETTING_USERINFO, asyncResponse.cause());
+                            log.error(ERROR_GETTING_USERINFO, asyncResponse.cause());
                             responseHandler.handle(new UserInfoResponse(asyncResponse.cause()));
                         } else {
                             final HttpClientResponse response = asyncResponse.result();
                             response.bodyHandler(buffer -> {
-                                logger.debug("Userinfo endpoint returns a response with a {} status code", response.statusCode());
+                                log.debug("Userinfo endpoint returns a response with a {} status code", response.statusCode());
 
                                 if (response.statusCode() == HttpStatusCode.OK_200) {
                                     responseHandler.handle(new UserInfoResponse(true, buffer.toString()));
                                 } else {
-                                    logger.error(
+                                    log.error(
                                         "An error occurs while getting userinfo from access token. Request ends with status {}: {}",
                                         response.statusCode(),
                                         buffer
@@ -347,7 +346,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             return;
         }
 
-        logger.debug("Exchange token by requesting {}", tokenExchangeEndpointURL);
+        log.debug("Exchange token by requesting {}", tokenExchangeEndpointURL);
 
         final RequestOptions reqOptions;
         final String body;
@@ -372,7 +371,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
         httpClient
             .request(reqOptions)
             .onFailure(event -> {
-                logger.error(ERROR_EXCHANGING_TOKEN, event);
+                log.error(ERROR_EXCHANGING_TOKEN, event);
                 responseHandler.handle(new TokenExchangeResponse(event));
             })
             .onSuccess(request -> {
@@ -380,12 +379,12 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                     .response()
                     .onComplete(asyncResponse -> {
                         if (asyncResponse.failed()) {
-                            logger.error(ERROR_EXCHANGING_TOKEN, asyncResponse.cause());
+                            log.error(ERROR_EXCHANGING_TOKEN, asyncResponse.cause());
                             responseHandler.handle(new TokenExchangeResponse(asyncResponse.cause()));
                         } else {
                             final HttpClientResponse response = asyncResponse.result();
                             response.bodyHandler(buffer -> {
-                                logger.debug("Token exchange endpoint returns a response with a {} status code", response.statusCode());
+                                log.debug("Token exchange endpoint returns a response with a {} status code", response.statusCode());
 
                                 if (response.statusCode() == HttpStatusCode.OK_200) {
                                     handleTokenExchangeSuccess(buffer.toString(), responseHandler);
@@ -496,14 +495,14 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
                 detail = description != null ? error + ": " + description : error;
             }
         } catch (IOException e) {
-            logger.debug("Token exchange error response is not a valid JSON payload", e);
+            log.debug("Token exchange error response is not a valid JSON payload", e);
         }
 
         String message = detail != null
             ? ERROR_EXCHANGING_TOKEN + " (" + statusCode + " " + detail + ")"
             : ERROR_EXCHANGING_TOKEN + " (" + statusCode + ")";
 
-        logger.error("An error occurs while exchanging token. Request ends with status {}: {}", statusCode, detail);
+        log.error("An error occurs while exchanging token. Request ends with status {}: {}", statusCode, detail);
         responseHandler.handle(new TokenExchangeResponse(new OAuth2ResourceException(message)));
     }
 
@@ -540,7 +539,7 @@ public class OAuth2GenericResource extends OAuth2Resource<OAuth2ResourceConfigur
             responseHandler.handle(responseBuilder.build());
         } catch (IOException e) {
             // the body is the token payload: never log it
-            logger.error("Unable to parse token exchange response", e);
+            log.error("Unable to parse token exchange response", e);
             responseHandler.handle(new TokenExchangeResponse(e));
         }
     }
